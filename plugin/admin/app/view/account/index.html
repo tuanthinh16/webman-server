@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+    <head>
+        <meta charset="UTF-8">
+        <title></title>
+        <link rel="stylesheet" href="/app/admin/component/layui/css/layui.css?v=2.8.12" />
+        <link rel="stylesheet" href="/app/admin/component/pear/css/pear.css" />
+        <link rel="stylesheet" href="/app/admin/admin/css/reset.css" />
+    </head>
+    <body class="pear-container">
+        <style>
+            .layui-input-block input {
+                width: 300px;
+            }
+        </style>
+
+        <div class="layui-card">
+            <div class="layui-card-body">
+
+                <div class="layui-tab layui-tab-brief">
+                <ul class="layui-tab-title">
+                    <li class="layui-this">Basic Information</li>
+                    <li>Security Settings</li>
+                </ul>
+                <div class="layui-tab-content">
+
+                    <!-- 基本信息 -->
+                    <div class="layui-tab-item layui-show">
+
+                        <form class="layui-form" lay-filter="baseInfo">
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">Nick name</label>
+                                <div class="layui-input-block">
+                                    <input type="text" name="nickname" required  lay-verify="required" placeholder="Nick name" autocomplete="off" class="layui-input">
+                                </div>
+                            </div>
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">Mail</label>
+                                <div class="layui-input-block">
+                                    <input type="text" name="email" placeholder="Mail" autocomplete="off" class="layui-input">
+                                </div>
+                            </div>
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">Contact Number</label>
+                                <div class="layui-input-block">
+                                    <input type="text" name="mobile" placeholder="Contact Number" autocomplete="off" class="layui-input">
+                                </div>
+                            </div>
+                            <div class="layui-form-item">
+                                <div class="layui-input-block">
+                                    <button type="submit" class="pear-btn pear-btn-primary pear-btn-md" lay-submit="" lay-filter="saveBaseInfo">
+                                        Submit
+                                    </button>
+                                    <button type="reset" class="pear-btn pear-btn-md">
+                                        Reset
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+
+                    </div>
+
+                    <div class="layui-tab-item">
+
+                        <form class="layui-form" action="">
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">Original password</label>
+                                <div class="layui-input-block">
+                                    <input type="password" name="old_password" required  lay-verify="required" placeholder="Original password" autocomplete="off" class="layui-input">
+                                </div>
+                            </div>
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">New Password</label>
+                                <div class="layui-input-block">
+                                    <input type="password" name="password" required  lay-verify="required" placeholder="New Password" autocomplete="off" class="layui-input">
+                                </div>
+                            </div>
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">Confirm New Password</label>
+                                <div class="layui-input-block">
+                                    <input type="password" name="password_confirm" required  lay-verify="required" placeholder="Confirm New Password" autocomplete="off" class="layui-input">
+                                </div>
+                            </div>
+                            <div class="layui-form-item">
+                                <div class="layui-input-block">
+                                    <button type="submit" class="pear-btn pear-btn-primary pear-btn-md" lay-submit="" lay-filter="savePassword">
+                                        Submit
+                                    </button>
+                                    <button type="reset" class="pear-btn pear-btn-md">
+                                        Reset
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+
+                    </div>
+
+                </div>
+            </div>
+
+            </div>
+        </div>
+
+
+        <script src="/app/admin/component/layui/layui.js?v=2.8.12"></script>
+        <script src="/app/admin/component/pear/pear.js"></script>
+        <script src="/app/admin/admin/js/permission.js"></script>
+        <script>
+
+            layui.use(["form", "popup"], function () {
+                let form = layui.form;
+                let $ = layui.$;
+                $.ajax({
+                    url: "/app/admin/account/info",
+                    dataType: "json",
+                    success: function (res) {
+                        form.val("baseInfo", res.data);
+                    }
+                });
+
+                form.on("submit(saveBaseInfo)", function(data){
+                    $.ajax({
+                        url: "/app/admin/account/update",
+                        dataType: "json",
+                        type: "POST",
+                        data: data.field,
+                        success: function (res) {
+                            if (res.code) {
+                                return layui.popup.failure(res.msg);
+                            }
+                            return layui.popup.success("Operation successful");
+                        }
+                    });
+                    return false;
+                });
+
+                form.on("submit(savePassword)", function(data){
+                    $.ajax({
+                        url: "/app/admin/account/password",
+                        dataType: "json",
+                        type: "POST",
+                        data: data.field,
+                        success: function (res) {
+                            if (res.code) {
+                                return layui.popup.failure(res.msg);
+                            }
+                            return layui.popup.success("Operation successful");
+                        }
+                    });
+                    return false;
+                });
+
+            });
+
+        </script>
+
+    </body>
+</html>

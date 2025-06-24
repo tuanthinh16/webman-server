@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Fetch Orders</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; }
+    #orders { list-style: none; padding: 0; }
+    #orders li { margin: .5rem 0; }
+    #controls { margin-bottom: 1rem; }
+    input, button { padding: .5rem; font-size: 1rem; }
+    input { width: 300px; }
+  </style>
+</head>
+<body>
+  <h2>Get Orders (start=0, limit=2, order_by=desc)</h2>
+  <div id="controls">
+    <input id="token" placeholder="Enter your JWT token">
+    <button id="fetch">Fetch Orders</button>
+  </div>
+  <div>
+    <strong>Status:</strong> <span id="status">—</span>
+  </div>
+  <ul id="orders">
+    <!-- orders go here -->
+  </ul>
+
+  <script>
+    document.getElementById('fetch').addEventListener('click', async () => {
+      const token = document.getElementById('token').value.trim();
+      if (!token) return alert('Please enter your JWT token');
+
+      const url = 'http://localhost:8787/api/orders?start=0&limit=2&order_by=desc';
+      document.getElementById('status').textContent = 'Loading…';
+      document.getElementById('orders').innerHTML = '';
+
+      try {
+        const res = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Accept': 'application/json'
+          }
+        });
+
+        document.getElementById('status').textContent = `HTTP ${res.status} ${res.statusText}`;
+
+        // parse JSON body
+        const json = await res.json();
+        console.log('json data',json);
+        if (!json.success && res.status !== 200) {
+          // show error
+          document.getElementById('orders').innerHTML =
+            `<li style="color:red">${json.error || json.message || 'Unknown error'}</li>`;
+          return;
+        }
+
+        const orders = json.data || [];
+        if (!orders.length) {
+          document.getElementById('orders').innerHTML = '<li>No orders found</li>';
+          return;
+        }
+
+        // render each order
+        const ul = document.getElementById('orders');
+        orders.forEach(o => {
+          const li = document.createElement('li');
+          li.textContent = 
+            `#${o.id} | ${o.symbol} ${o.side} ${o.price} × ${o.quantity} → status: ${o.status}`;
+          ul.appendChild(li);
+        });
+
+      } catch (err) {
+        document.getElementById('status').textContent = 'Error';
+        document.getElementById('orders').innerHTML =
+          `<li style="color:red">Fetch error: ${err.message}</li>`;
+      }
+    });
+  </script>
+</body>
+</html>
