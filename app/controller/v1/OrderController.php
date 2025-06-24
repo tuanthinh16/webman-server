@@ -1,6 +1,6 @@
 <?php
 
-namespace app\controller;
+namespace app\controller\v1;
 
 use app\middleware\AuthMiddleware;
 use app\model\Order;

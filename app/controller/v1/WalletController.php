@@ -1,6 +1,6 @@
 <?php
 
-namespace app\controller;
+namespace app\controller\v1;
 
 use app\model\Balance;
 use app\model\Order;

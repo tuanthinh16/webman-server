@@ -1,6 +1,6 @@
 <?php
 
-namespace app\controller;
+namespace app\controller\v1;
 
 use support\Request;
 use support\Response;
@@ -90,6 +90,7 @@ class TransactionController
                 'user_id'      => $userId,
                 'tx_type'      => $data['tx_type'],
                 'currency'     => $data['currency'],
+
                 'tx_hash'      => $txHash,
                 'status'       => $data['status'],
                 'amount'       => $data['amount'],

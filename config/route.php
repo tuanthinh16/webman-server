@@ -13,60 +13,53 @@
  * @license   http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
-use app\controller\AuthController;
-use app\controller\OrderController;
-use app\controller\TransactionController;
-use app\controller\UserController;
-use app\controller\WalletController;
+use app\controller\v1\AuthController;
+use app\controller\v1\OrderController;
+use app\controller\v1\TransactionController;
+use app\controller\v1\UserController;
+use app\controller\v1\WalletController;
 use app\middleware\AuthMiddleware;
+
 use support\Response;
 use Webman\Route;
 
-Route::post('/auth/login', [AuthController::class, 'login']);
-
-Route::get('/api/user', [UserController::class, 'show']);
-Route::post('/api/users/register',      [UserController::class, 'register']);
+Route::post('/auth/v1/login', [AuthController::class, 'login']);
 
 
-//users
-Route::group('/api/users', function () {
-    Route::get('', [UserController::class, 'index']);
-    Route::post('password',      [UserController::class, 'changePassword']);
-    Route::patch('last_login',    [UserController::class, 'updateLastLogin']);
-}, [
-    'middleware' => [
-        AuthMiddleware::class
-    ]
-]);
-
-//orders
-Route::group('/api/orders', function () {
-    // GET  /api/orders
-    Route::get('',                      [OrderController::class, 'getByUserID']);
-    // POST /api/orders/place
-    Route::post('/place',               [OrderController::class, 'place']);
-    // POST /api/orders/accept?order_id={order_id}
-    Route::post('/accept',              [OrderController::class, 'accept']);
-    // POST /api/orders/close?order_id={order_id}
-    Route::post('/close',               [OrderController::class, 'close']);
-    // POST /api/orders/cancel?order_id={order_id}
-    Route::post('/cancel',            [OrderController::class, 'cancel']);
+Route::group('/api', function () {
+    Route::group('/v1', function () {
+        Route::group('/orders', function () {
+            Route::get('',                      [OrderController::class, 'getByUserID']);
+            // POST /api/orders/place
+            Route::post('/place',               [OrderController::class, 'place']);
+            // POST /api/orders/accept?order_id={order_id}
+            Route::post('/accept',              [OrderController::class, 'accept']);
+            // POST /api/orders/close?order_id={order_id}
+            Route::post('/close',               [OrderController::class, 'close']);
+            // POST /api/orders/cancel?order_id={order_id}
+            Route::post('/cancel',            [OrderController::class, 'cancel']);
+        });
+        Route::group('/transaction', function () {
+            Route::post('', [TransactionController::class, 'create']);
+            Route::get('', [TransactionController::class, 'index']);
+        });
+        Route::group('/wallet', function () {
+            Route::get('', [WalletController::class, 'getBalance']);
+        });
+        Route::group('/users', function () {
+            Route::get('/all', [UserController::class, 'show']);
+            Route::get('', [UserController::class, 'index']);
+            Route::post('/password',      [UserController::class, 'changePassword']);
+            Route::patch('/last_login',    [UserController::class, 'updateLastLogin']);
+            Route::post('/register',      [UserController::class, 'register']);
+        });
+    });
 }, [
     'middleware' => [
         AuthMiddleware::class,
     ],
 ]);
-//Transaction
 
-
-Route::group('/api/transaction', function () {
-    Route::post('', [TransactionController::class, 'create']);
-    Route::get('', [TransactionController::class, 'index']);
-});
-// wallet 
-Route::group('/api/wallet', function () {
-    Route::get('', [WalletController::class, 'getBalance']);
-});
 
 //view
 Route::get('/test', function () {

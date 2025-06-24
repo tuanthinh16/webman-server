@@ -1,6 +1,6 @@
 <?php
 
-namespace app\controller;
+namespace app\controller\v1;
 
 use app\model\User;   // Model mới, mapping tới wa_users
 use support\Request;
