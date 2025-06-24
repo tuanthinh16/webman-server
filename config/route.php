@@ -85,3 +85,4 @@ Route::get('/', function () {
     $html = file_get_contents($file);
     return new Response(200, ['Content-Type' => 'text/html'], $html);
 });
+Route::disableDefaultRoute();
