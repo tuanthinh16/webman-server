@@ -25,6 +25,7 @@ use Webman\Route;
 
 Route::post('/auth/v1/login', [AuthController::class, 'login']);
 Route::get('/search', [UserController::class, 'search']);
+Route::post('/register',      [UserController::class, 'register']);
 
 Route::group('/api', function () {
     Route::group('/v1', function () {
@@ -49,16 +50,11 @@ Route::group('/api', function () {
         Route::group('/users', function () {
             Route::get('/all', [UserController::class, 'show']);
             Route::get('', [UserController::class, 'index']);
-            Route::post('/password',      [UserController::class, 'changePassword']);
+            // Route::post('/password',      [UserController::class, 'changePassword']);
             Route::patch('/last_login',    [UserController::class, 'updateLastLogin']);
-            Route::post('/register',      [UserController::class, 'register']);
         });
     });
-}, [
-    'middleware' => [
-        AuthMiddleware::class,
-    ],
-]);
+});
 
 
 //view

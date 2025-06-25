@@ -32,13 +32,8 @@ class AuthMiddleware implements MiddlewareInterface
             ? $request->getRealIp()
             : ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? 'unknown');
         Log::debug('request from IP: ' . $ip);
-        // Bỏ qua xác thực cho các route public
-        if ($this->shouldSkipAuth($request)) {
-            return $next($request);
-        }
 
         $token = $this->extractToken($request);
-        // Log::debug('token recive ' . $token);
         if (!$token) {
             return $this->unauthorizedResponse('Missing authorization token');
         }
@@ -56,23 +51,9 @@ class AuthMiddleware implements MiddlewareInterface
         return $next($request);
     }
 
-
-
-
-
-
-
-    protected function shouldSkipAuth(Request $request): bool
-    {
-        $publicRoutes = [];
-
-        return in_array($request->path(), $publicRoutes);
-    }
-
     protected function extractToken(Request $request): ?string
     {
         $authHeader = $request->header('Authorization', '');
-        // Log::debug('authHeader recive ' . $authHeader);
         if (preg_match('/^Bearer\s+(\S+)$/', $authHeader, $matches)) {
             return $matches[1];
         }
