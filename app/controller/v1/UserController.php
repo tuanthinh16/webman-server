@@ -7,9 +7,94 @@ use support\Request;
 use support\Response;
 use support\Log;
 use Illuminate\Database\Capsule\Manager as DB;
+use Elastic\Elasticsearch\ClientBuilder;
+
+use support\Redis;
 
 class UserController
 {
+     protected $client;
+
+    public function __construct()
+    {
+      $this->client = ClientBuilder::create()
+             ->setHosts(['http://elasticsearch:9200']) 
+            ->build();
+    }
+
+        public function search($request)
+        {
+        //    return Redis::del('users');
+            $index = 'wa_users';
+            $keyword = $request->input('q', ''); 
+
+            if (!$keyword) {
+                return new \Workerman\Protocols\Http\Response(400, ['Content-Type' => 'application/json'], json_encode([
+                    'error' => 'Missing search keyword'
+                ], JSON_UNESCAPED_UNICODE));
+            }
+
+
+            if (!$this->client->indices()->exists(['index' => $index])->asBool()) {
+                $this->client->indices()->create([
+                    'index' => $index,
+                    'body' => [
+                        'mappings' => [
+                            'properties' => [
+                                'nickname' => ['type' => 'text'],
+                                'level'    => ['type' => 'text']
+                            ]
+                        ]
+                    ]
+                ]);
+            }
+
+               
+                $data = "";
+                if (!Redis::exists('userss')) {
+                    $data = User::all()->toArray();
+                    Redis::set('userss', json_encode($data));
+                }
+
+                $data = Redis::get('userss');
+                return json(['data' => $data]);
+                $bulkParams = ['body' => []];
+
+                foreach ($data as $user) {
+                    $bulkParams['body'][] = [
+                        'index' => [
+                            '_index' => $index,
+                            '_id'    => $user['id'],
+                        ]
+                    ];
+                    $bulkParams['body'][] = [
+                        'nickname' => $user['nickname'] ?? '',
+                        'username'    => $user['username'] ?? ''
+                    ];
+                }
+
+               $this->client->bulk($bulkParams);
+                
+                 $params = [
+                    'index' => $index,
+                    'body'  => [
+                        'query' => [
+                            'multi_match' => [
+                                'query'  => $keyword,
+                                'fields' => ['nickname', 'username'],
+                                'type'   => 'phrase'
+                            ]
+                        ]
+                    ]
+                ];
+
+                    $response = $this->client->search($params);
+
+                    return json($response['hits']['hits']);
+        }
+
+
+
     /**
      * List all users (admin).
      */

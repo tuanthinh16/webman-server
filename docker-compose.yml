@@ -40,6 +40,23 @@ services:
       - "6379:6379"
     networks:
       - webman-network
+
+  elasticsearch:
+    build:
+      context: .
+      dockerfile: docker/elasticsearch/Dockerfile
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - webman-network
+
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: webman-phpmyadmin
@@ -58,7 +75,7 @@ services:
 volumes:
   mysql-data:
   redis-data:
-
+  es_data:
 networks:
   webman-network:
     driver: bridge

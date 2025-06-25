@@ -24,7 +24,7 @@ use support\Response;
 use Webman\Route;
 
 Route::post('/auth/v1/login', [AuthController::class, 'login']);
-
+Route::get('/search', [UserController::class, 'search']);
 
 Route::group('/api', function () {
     Route::group('/v1', function () {
