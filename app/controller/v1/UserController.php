@@ -14,16 +14,18 @@ use support\Redis;
 class UserController
 {
     protected $client;
+    protected $keyRedis = 'wa_users';
 
     public function __construct()
     {
         $this->client = ClientBuilder::create()
-            ->setHosts(['http://elasticsearch:9200'])
+            ->setHosts([env('ESLASCTICSEARCH')])
             ->build();
     }
 
     public function search($request)
     {
+        //    return Redis::del('users');
         $index = 'wa_users';
         $keyword = $request->input('q', '');
 
@@ -32,9 +34,11 @@ class UserController
                 'error' => 'Missing search keyword'
             ], JSON_UNESCAPED_UNICODE));
         }
-        if (!$this->client->indices()->exists(['index' => $index])->asBool()) {
+
+
+        if (!$this->client->indices()->exists(['index' => $this->keyRedis])->asBool()) {
             $this->client->indices()->create([
-                'index' => $index,
+                'index' => $this->keyRedis,
                 'body' => [
                     'mappings' => [
                         'properties' => [
@@ -45,13 +49,15 @@ class UserController
                 ]
             ]);
         }
+
         $data = "";
         if (!Redis::exists('userss')) {
             $data = User::all()->toArray();
             Redis::set('userss', json_encode($data));
+        } else {
+            $data = json_decode(Redis::get('userss'), true);
         }
-        $data = Redis::get('userss');
-        return json(['data' => $data]);
+
         $bulkParams = ['body' => []];
 
         foreach ($data as $user) {
@@ -66,7 +72,9 @@ class UserController
                 'username'    => $user['username'] ?? ''
             ];
         }
+
         $this->client->bulk($bulkParams);
+
         $params = [
             'index' => $index,
             'body'  => [
@@ -84,6 +92,9 @@ class UserController
 
         return json($response['hits']['hits']);
     }
+
+
+
     /**
      * List all users (admin).
      */
@@ -97,6 +108,7 @@ class UserController
             return json(['error' => 'Server error'], 500);
         }
     }
+
     /**
      * Show a single user by id or username.
      * GET /api/user?id=123  hoặc  /api/user?username=alice
