@@ -1,29 +1,43 @@
 <?php
-
 namespace app\validation\user;
 
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Factory;
+use Illuminate\Translation\ArrayLoader;
+use Illuminate\Translation\Translator;
 
 class UserValidate
 {
-
-    public static function validateCreate()
+    public static function validate(array $data)
     {
-        var_dump('UserValidate::validateCreate called');
-        exit();
-        // $errors = [];
-        // if (empty($data['username'])) {
-        //     $errors[] = 'Username is required.';
-        // }
-        // if (empty($data['password'])) {
-        //     $errors[] = 'Password is required.';
-        // }
-        // if (empty($data['email'])) {
-        //     $errors[] = 'Email is required.';
-        // } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-        //     $errors[] = 'Invalid email format.';
-        // }
+        $translator = new Translator(new ArrayLoader(), 'en');
+        $factory = new Factory($translator);
 
-        // return $errors;
+        $rules = [
+            'username' => 'required|string|max:50',
+            'password' => 'required|string|min:6',
+        ];
+
+        $messages = [
+            'username.required' => 'Username là bắt buộc',
+            'password.required' => 'Password là bắt buộc',
+        ];
+
+        $validation = $factory->make($data, $rules, $messages);
+
+         if ($validation->fails()) {
+                $errors = $validation->errors()->toArray();
+                $flatErrors = [];
+
+                foreach ($errors as $field => $messages) {
+                    $flatErrors[$field] = $messages[0];
+                }
+
+                return  [
+                    'status' => FALSE,
+                    'message' => $flatErrors,
+                ];
+            }
+
+        return $validation->validated();
     }
 }

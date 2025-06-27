@@ -13,23 +13,10 @@ use Workerman\Events\Uv;
 
 class UserController
 {
-<<<<<<< HEAD
-    protected UserValidate $validator;
     protected UserInterface $interface;
-    public function __construct(UserInterface $interface, UserValidate $validator)
+    public function __construct(UserInterface $interface)
     {
-        $this->validator = $validator;
         $this->interface = $interface;
-=======
-     protected $client;
-     protected $keyRedis = 'wa_users';
-
-    public function __construct()
-    {
-      $this->client = ClientBuilder::create()
-             ->setHosts([env('ESLASCTICSEARCH')]) 
-            ->build();
->>>>>>> remotes/be/khuongbm
     }
 
     // GET /search?q=keyword&page=1&per_page=15
@@ -40,7 +27,6 @@ class UserController
             $perPage = (int)$request->input('per_page', 15);
             $paginated = $this->interface->search($keyword, $perPage);
 
-<<<<<<< HEAD
             return new Response(200, Response::$HEADERS_JSON, json_encode([
                 'success' => true,
                 'data' => $paginated->items(),
@@ -54,70 +40,6 @@ class UserController
         } catch (\Throwable $e) {
             Log::error('UserController@search error: ' . $e->getMessage());
             return new Response(500, Response::$HEADERS_JSON, json_encode(['success' => false, 'error' => 'Server error'], JSON_UNESCAPED_UNICODE));
-=======
-            if (!$keyword) {
-                return new \Workerman\Protocols\Http\Response(400, ['Content-Type' => 'application/json'], json_encode([
-                    'error' => 'Missing search keyword'
-                ], JSON_UNESCAPED_UNICODE));
-            }
-
-
-            if (!$this->client->indices()->exists(['index' => $this->keyRedis])->asBool()) {
-                $this->client->indices()->create([
-                    'index' => $this->keyRedis,
-                    'body' => [
-                        'mappings' => [
-                            'properties' => [
-                                'nickname' => ['type' => 'text'],
-                                'level'    => ['type' => 'text']
-                            ]
-                        ]
-                    ]
-                ]);
-            }
-
-               $data = "";
-                if (!Redis::exists('userss')) {
-                    $data = User::all()->toArray();
-                    Redis::set('userss', json_encode($data));
-                } else {
-                    $data = json_decode(Redis::get('userss'), true); 
-                }
-
-                $bulkParams = ['body' => []];
-
-                foreach ($data as $user) {
-                    $bulkParams['body'][] = [
-                        'index' => [
-                            '_index' => $index,
-                            '_id'    => $user['id'],
-                        ]
-                    ];
-                    $bulkParams['body'][] = [
-                        'nickname' => $user['nickname'] ?? '',
-                        'username'    => $user['username'] ?? ''
-                    ];
-                }
-
-               $this->client->bulk($bulkParams);
-                
-                 $params = [
-                    'index' => $index,
-                    'body'  => [
-                        'query' => [
-                            'multi_match' => [
-                                'query'  => $keyword,
-                                'fields' => ['nickname', 'username'],
-                                'type'   => 'phrase'
-                            ]
-                        ]
-                    ]
-                ];
-
-                    $response = $this->client->search($params);
-
-                    return json($response['hits']['hits']);
->>>>>>> remotes/be/khuongbm
         }
     }
 
@@ -184,13 +106,12 @@ class UserController
     // POST /api/v1/users/register
     public function create(Request $request)
     {
-        $data = $request->json();
-        $dataOnly  = $request->only(['username', 'password']);
+         $data = $request->only(['username', 'password']);
+        $validated = UserValidate::validate($data);
 
-        $error = $this->validator->validateCreate($dataOnly);
-        if (!empty($error)) {
-            return new Response(400, Response::$HEADERS_JSON, json_encode(['error' => $error], JSON_UNESCAPED_UNICODE));
-        }
+        if($validated['status'] === false) {
+            $error = $validated['errors'];
+        } 
         try {
             $user = $this->interface->register($this->prepareRegistration($data, IpAddressHelper::getRequestIp($request)));
             return new Response(201, Response::$HEADERS_JSON, json_encode(['success' => true, 'user_id' => $user->id], JSON_UNESCAPED_UNICODE));
