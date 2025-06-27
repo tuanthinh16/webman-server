@@ -13,10 +13,10 @@ use Workerman\Events\Uv;
 
 class UserController
 {
-    protected UserInterface $interface;
-    public function __construct(UserInterface $interface)
+    protected UserInterface $userInterface;
+    public function __construct(UserInterface $userInterface)
     {
-        $this->interface = $interface;
+        $this->userInterface = $userInterface;
     }
 
     // GET /search?q=keyword&page=1&per_page=15
@@ -25,10 +25,10 @@ class UserController
         try {
             $keyword = $request->input('q', '');
             $perPage = (int)$request->input('per_page', 15);
-            $paginated = $this->interface->search($keyword, $perPage);
+            $paginated = $this->userInterface->search($keyword, $perPage);
 
             return new Response(200, Response::$HEADERS_JSON, json_encode([
-                'success' => true,
+                'status' => true,
                 'data' => $paginated->items(),
                 'pagination' => [
                     'current_page' => $paginated->currentPage(),
@@ -39,7 +39,7 @@ class UserController
             ], JSON_UNESCAPED_UNICODE));
         } catch (\Throwable $e) {
             Log::error('UserController@search error: ' . $e->getMessage());
-            return new Response(500, Response::$HEADERS_JSON, json_encode(['success' => false, 'error' => 'Server error'], JSON_UNESCAPED_UNICODE));
+            return new Response(500, Response::$HEADERS_JSON, json_encode(['status' => false, 'error' => 'Server error'], JSON_UNESCAPED_UNICODE));
         }
     }
 
@@ -48,18 +48,28 @@ class UserController
     {
         try {
             $perPage = (int)$request->input('per_page', 15);
-            $paginated = $this->interface->listUsers($perPage);
-            return new Response(200, Response::$HEADERS_JSON, json_encode([
-                'success' => true,
-                'data' => $paginated->items(),
-                'pagination' => [
+            $paginated = $this->userInterface->listUsers($perPage);
+
+            // Nếu trả về paginator (LengthAwarePaginator)
+            if (is_object($paginated) && method_exists($paginated, 'items')) {
+                $data = $paginated->items();
+                $pagination = [
                     'current_page' => $paginated->currentPage(),
                     'last_page'    => $paginated->lastPage(),
                     'per_page'     => $paginated->perPage(),
                     'total'        => $paginated->total(),
-                ]
+                ];
+            } else {
+                // Nếu trả về mảng (không phân trang)
+                $data = $paginated;
+                $pagination = null;
+            }
+
+            return new Response(200, Response::$HEADERS_JSON, json_encode([
+                'success' => true,
+                'data' => $data,
+                'pagination' => $pagination,
             ], JSON_UNESCAPED_UNICODE));
-            // return $this->repo->test();
         } catch (\Throwable $e) {
             Log::error('UserController@index error: ' . $e->getMessage());
             return new Response(500, Response::$HEADERS_TEXT, json_encode(['success' => false, 'error' => 'Server error'], JSON_UNESCAPED_UNICODE));
@@ -74,10 +84,10 @@ class UserController
             $user = null;
             if (ctype_digit($identifier)) {
                 $id = (int) $identifier;
-                $user = $this->interface->findByID($id);
+                $user = $this->userInterface->findByID($id);
             } else {
                 $username = $identifier;
-                $user = $this->interface->findByUsername($username);
+                $user = $this->userInterface->findByUsername($username);
             }
 
             if (!$user) {
@@ -106,14 +116,14 @@ class UserController
     // POST /api/v1/users/register
     public function create(Request $request)
     {
-         $data = $request->only(['username', 'password']);
+        $data = $request->only(['username', 'password']);
         $validated = UserValidate::validate($data);
 
-        if($validated['status'] === false) {
+        if ($validated['status'] === false) {
             $error = $validated['errors'];
-        } 
+        }
         try {
-            $user = $this->interface->register($this->prepareRegistration($data, IpAddressHelper::getRequestIp($request)));
+            $user = $this->userInterface->register($this->prepareRegistration($data, IpAddressHelper::getRequestIp($request)));
             return new Response(201, Response::$HEADERS_JSON, json_encode(['success' => true, 'user_id' => $user->id], JSON_UNESCAPED_UNICODE));
         } catch (\Throwable $e) {
             Log::error('UserController@register error: ' . $e->getMessage());
@@ -142,7 +152,7 @@ class UserController
             );
         }
 
-        if ($this->interface->changePassword($userId, $data['old_password'], $data['new_password'])) {
+        if ($this->userInterface->changePassword($userId, $data['old_password'], $data['new_password'])) {
             return new Response(
                 200,
                 Response::$HEADERS_JSON,
@@ -157,48 +167,6 @@ class UserController
         );
     }
 
-    // PATCH /api/v1/users/last_login
-    public function updateLastLogin(Request $request)
-    {
-        try {
-            $userId = $request->attributes['user_id'] ?? null;
-            if (!$userId) {
-                return new Response(
-                    401,
-                    Response::$HEADERS_JSON,
-                    json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE)
-                );
-            }
-
-            $data = $request->json();
-            $payload = [
-                'last_time' => $data['last_time'] ?? date('Y-m-d H:i:s'),
-                'last_ip'   => IpAddressHelper::getRequestIp($request)
-            ];
-
-            if ($this->interface->updateLastLogin($userId, $payload)) {
-                return new Response(
-                    200,
-                    Response::$HEADERS_JSON,
-                    json_encode(array_merge(['success' => true], $payload), JSON_UNESCAPED_UNICODE)
-                );
-            }
-
-            return new Response(
-                500,
-                Response::$HEADERS_JSON,
-                json_encode(['error' => 'Cannot update last login'], JSON_UNESCAPED_UNICODE)
-            );
-        } catch (\Throwable $e) {
-            Log::error('UserController@updateLastLogin error: ' . $e->getMessage());
-            return new Response(
-                500,
-                Response::$HEADERS_JSON,
-                json_encode(['error' => 'Server error'], JSON_UNESCAPED_UNICODE)
-            );
-        }
-    }
-
     /** Helpers **/
     protected function prepareRegistration(array $data, string $ip): array
     {
@@ -207,6 +175,7 @@ class UserController
             'password'  => password_hash($data['password'], PASSWORD_BCRYPT),
             'join_time' => $now,
             'join_ip'   => $ip,
+            'nickname' => $data['username'] ?? ''
         ]);
     }
 }

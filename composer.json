@@ -45,7 +45,8 @@
     "php-di/php-di": "^7.0",
     "doctrine/annotations": "1.14",
     "illuminate/validation": "^9.52",
-    "illuminate/translation": "^9.52"
+    "illuminate/translation": "^9.52",
+    "topthink/think-validate": "2.0"
   },
   "suggest": {
     "ext-event": "For better performance. "

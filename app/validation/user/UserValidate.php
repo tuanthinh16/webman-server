@@ -1,4 +1,5 @@
 <?php
+
 namespace app\validation\user;
 
 use Illuminate\Validation\Factory;
@@ -24,19 +25,19 @@ class UserValidate
 
         $validation = $factory->make($data, $rules, $messages);
 
-         if ($validation->fails()) {
-                $errors = $validation->errors()->toArray();
-                $flatErrors = [];
+        if ($validation->fails()) {
+            $errors = $validation->errors()->toArray();
+            $flatErrors = [];
 
-                foreach ($errors as $field => $messages) {
-                    $flatErrors[$field] = $messages[0];
-                }
-
-                return  [
-                    'status' => FALSE,
-                    'message' => $flatErrors,
-                ];
+            foreach ($errors as $field => $messages) {
+                $flatErrors[$field] = $messages[0];
             }
+
+            return  [
+                'status' => FALSE,
+                'message' => $flatErrors,
+            ];
+        }
 
         return $validation->validated();
     }

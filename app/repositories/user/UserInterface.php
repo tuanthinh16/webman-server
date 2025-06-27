@@ -4,16 +4,56 @@ namespace app\repositories\user;
 
 interface UserInterface
 {
-
+    /**
+     * Find a user by their username.
+     *
+     * @param string $username
+     * 
+     */
     public function findByUsername(string $username);
+    /**
+     * find a user by their ID.
+     *
+     * @param integer $id
+     *
+     */
     public function findByID(int $id);
+    /**
+     * Search users by keyword.
+     *
+     * @param string $keyword
+     * @param int $perPage
+     * 
+     */
     public function search(string $keyword, int $perPage);
+    /**
+     * List users with pagination.
+     *
+     * @param int $perPage
+     * 
+     */
     public function listUsers(int $perPage);
-    public function changePassword(int $userId, string $oldPassword, string $newPassword): bool;
-    public function update($id, array $attributes);
+    /**
+     * Update the last login time and IP address for a user.
+     *
+     * @param int $userId
+     * @param array $payload
+     * @return bool
+     */
+    public function changePassword(int $userId, string $oldPassword, string $newPassword);
+    /**
+     * Update user attributes.
+     *
+     * @param int $id
+     * @param array $attributes
+     * 
+     */
+    public function update(int $id, array $attributes);
+    /**
+     * Register a new user.
+     *
+     * @param array $data
+     * 
+     */
     public function register(array $data);
-    public function clearCache(): bool;
-    public function paginate(int $perPage = 15, array $columns = ['*']);
-    // public function getByIdOrUsername(int $id, string $username);
-    public function updateLastLogin(int $userId, array $payload): bool;
 }

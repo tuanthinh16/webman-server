@@ -3,7 +3,6 @@
 namespace app\repositories\user;
 
 use app\model\User;
-use app\repositories\BaseRepository;
 use Elastic\Elasticsearch\ClientBuilder;
 use support\Log;
 use support\Redis;
@@ -36,14 +35,18 @@ class UserRepository implements UserInterface
 
     public function listUsers(int $perPage = 15)
     {
-        if (!Redis::exists($this->cachePrefix)) {
-            $data = ($this->modelClass)::all()->toArray();
-            Redis::set($this->cachePrefix, json_encode($data));
-        } else {
-            $data = json_decode(Redis::get($this->cachePrefix), true);
-        }
 
-        return $data;
+        $data = ($this->modelClass)::select('id', 'username', 'email')->paginate($perPage)->get();
+        $page = (int)(request()->input('page', 1));
+        $items = array_slice($data, ($page - 1) * $perPage, $perPage);
+
+        return new \Illuminate\Pagination\LengthAwarePaginator(
+            $items,
+            count($data),
+            $perPage,
+            $page,
+            ['path' => request()->url(), 'query' => request()->queryString()]
+        );
     }
     public function findByID(int $id)
     {
@@ -68,25 +71,15 @@ class UserRepository implements UserInterface
         $this->update($userId, ['password' => password_hash($newPassword, PASSWORD_BCRYPT)]);
         return true;
     }
-    public function update($id, array $attributes)
+    public function update(int $id, array $attributes)
     {
         return ($this->modelClass)::where('id', $id)->update($attributes);
     }
-    public function paginate(int $perPage = 15, array $columns = ['*'])
-    {
-        return ($this->modelClass)::paginate($perPage, $columns);
-    }
-    public function clearCache(): bool
-    {
-        return Redis::del($this->cachePrefix) > 0;
-    }
+
     public function search(string $keyword, int $perPage)
     {
         // return '1';
         // return Redis::del('users'); // Clear cache for testing
-        if (empty($keyword)) {
-            return $this->paginate($perPage);
-        }
 
         if (!$this->esClient->indices()->exists(['index' => $this->index])->asBool()) {
             $this->esClient->indices()->create([
@@ -112,11 +105,16 @@ class UserRepository implements UserInterface
                 'index' => ['_index' => $this->index, '_id' => $user['id']]
             ];
             $bulkParams['body'][] = [
+                'id'          => $user['id'],
                 'nickname'    => $user['nickname'],
                 'username'    => $user['username'],
                 'email'       => $user['email'],
                 'created_at'  => $user['created_at'],
                 'updated_at'  => $user['updated_at'],
+                'join_time'   => $user['join_time'],
+                'join_ip'     => $user['join_ip'],
+                'last_time'   => $user['last_time'],
+                'last_ip'     => $user['last_ip'],
                 //.....
             ];
         }
@@ -126,10 +124,11 @@ class UserRepository implements UserInterface
             'index' => $this->index,
             'body'  => [
                 'query' => [
-                    'multi_match' => [
-                        'query'  => $keyword,
-                        'fields' => ['nickname', 'username'],
-                        'type'   => 'phrase'
+                    'bool' => [
+                        'should' => [
+                            ['wildcard' => ['nickname' => '*' . strtolower($keyword) . '*']],
+                            ['wildcard' => ['username' => '*' . strtolower($keyword) . '*']],
+                        ]
                     ]
                 ]
             ]
