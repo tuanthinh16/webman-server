@@ -13,11 +13,9 @@ use Workerman\Events\Uv;
 
 class UserController
 {
-    protected UserValidate $validator;
     protected UserInterface $interface;
-    public function __construct(UserInterface $interface, UserValidate $validator)
+    public function __construct(UserInterface $interface)
     {
-        $this->validator = $validator;
         $this->interface = $interface;
     }
 
@@ -108,13 +106,12 @@ class UserController
     // POST /api/v1/users/register
     public function create(Request $request)
     {
-        $data = $request->json();
-        $dataOnly  = $request->only(['username', 'password']);
+         $data = $request->only(['username', 'password']);
+        $validated = UserValidate::validate($data);
 
-        $error = $this->validator->validateCreate($dataOnly);
-        if (!empty($error)) {
-            return new Response(400, Response::$HEADERS_JSON, json_encode(['error' => $error], JSON_UNESCAPED_UNICODE));
-        }
+        if($validated['status'] === false) {
+            $error = $validated['errors'];
+        } 
         try {
             $user = $this->interface->register($this->prepareRegistration($data, IpAddressHelper::getRequestIp($request)));
             return new Response(201, Response::$HEADERS_JSON, json_encode(['success' => true, 'user_id' => $user->id], JSON_UNESCAPED_UNICODE));
