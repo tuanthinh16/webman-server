@@ -1,5 +1,5 @@
 # 1. Chọn image chính thức Elasticsearch
-FROM docker.elastic.co/elasticsearch/elasticsearch:7.17.10
+FROM docker.elastic.co/elasticsearch/elasticsearch:8.12.0
 
 # 2. Thiết lập biến môi trường tối thiểu cho single-node
 ENV discovery.type=single-node \

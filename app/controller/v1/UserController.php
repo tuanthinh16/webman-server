@@ -2,253 +2,214 @@
 
 namespace app\controller\v1;
 
-use app\model\User;   // Model mới, mapping tới wa_users
+use app\helper\IpAddressHelper;
+use app\model\User;
+use app\repositories\user\UserInterface;
+use app\validation\user\UserValidate;
 use support\Request;
 use support\Response;
 use support\Log;
-use Illuminate\Database\Capsule\Manager as DB;
-use Elastic\Elasticsearch\ClientBuilder;
-
-use support\Redis;
+use Workerman\Events\Uv;
 
 class UserController
 {
-     protected $client;
-     protected $keyRedis = 'wa_users';
-
-    public function __construct()
+    protected UserValidate $validator;
+    protected UserInterface $interface;
+    public function __construct(UserInterface $interface, UserValidate $validator)
     {
-      $this->client = ClientBuilder::create()
-             ->setHosts([env('ESLASCTICSEARCH')]) 
-            ->build();
+        $this->validator = $validator;
+        $this->interface = $interface;
     }
 
-        public function search($request)
-        {
-        //    return Redis::del('users');
-            $index = 'wa_users';
-            $keyword = $request->input('q', ''); 
+    // GET /search?q=keyword&page=1&per_page=15
+    public function search(Request $request)
+    {
+        try {
+            $keyword = $request->input('q', '');
+            $perPage = (int)$request->input('per_page', 15);
+            $paginated = $this->interface->search($keyword, $perPage);
 
-            if (!$keyword) {
-                return new \Workerman\Protocols\Http\Response(400, ['Content-Type' => 'application/json'], json_encode([
-                    'error' => 'Missing search keyword'
-                ], JSON_UNESCAPED_UNICODE));
-            }
-
-
-            if (!$this->client->indices()->exists(['index' => $this->keyRedis])->asBool()) {
-                $this->client->indices()->create([
-                    'index' => $this->keyRedis,
-                    'body' => [
-                        'mappings' => [
-                            'properties' => [
-                                'nickname' => ['type' => 'text'],
-                                'level'    => ['type' => 'text']
-                            ]
-                        ]
-                    ]
-                ]);
-            }
-
-               $data = "";
-                if (!Redis::exists('userss')) {
-                    $data = User::all()->toArray();
-                    Redis::set('userss', json_encode($data));
-                } else {
-                    $data = json_decode(Redis::get('userss'), true); 
-                }
-
-                $bulkParams = ['body' => []];
-
-                foreach ($data as $user) {
-                    $bulkParams['body'][] = [
-                        'index' => [
-                            '_index' => $index,
-                            '_id'    => $user['id'],
-                        ]
-                    ];
-                    $bulkParams['body'][] = [
-                        'nickname' => $user['nickname'] ?? '',
-                        'username'    => $user['username'] ?? ''
-                    ];
-                }
-
-               $this->client->bulk($bulkParams);
-                
-                 $params = [
-                    'index' => $index,
-                    'body'  => [
-                        'query' => [
-                            'multi_match' => [
-                                'query'  => $keyword,
-                                'fields' => ['nickname', 'username'],
-                                'type'   => 'phrase'
-                            ]
-                        ]
-                    ]
-                ];
-
-                    $response = $this->client->search($params);
-
-                    return json($response['hits']['hits']);
+            return new Response(200, Response::$HEADERS_JSON, json_encode([
+                'success' => true,
+                'data' => $paginated->items(),
+                'pagination' => [
+                    'current_page' => $paginated->currentPage(),
+                    'last_page'    => $paginated->lastPage(),
+                    'per_page'     => $paginated->perPage(),
+                    'total'        => $paginated->total(),
+                ]
+            ], JSON_UNESCAPED_UNICODE));
+        } catch (\Throwable $e) {
+            Log::error('UserController@search error: ' . $e->getMessage());
+            return new Response(500, Response::$HEADERS_JSON, json_encode(['success' => false, 'error' => 'Server error'], JSON_UNESCAPED_UNICODE));
         }
+    }
 
-
-
-    /**
-     * List all users (admin).
-     */
+    // GET /api/v1/users
     public function index(Request $request)
     {
         try {
-            $users = User::all()->toArray();
-            return json(['data' => $users], 200);
+            $perPage = (int)$request->input('per_page', 15);
+            $paginated = $this->interface->listUsers($perPage);
+            return new Response(200, Response::$HEADERS_JSON, json_encode([
+                'success' => true,
+                'data' => $paginated->items(),
+                'pagination' => [
+                    'current_page' => $paginated->currentPage(),
+                    'last_page'    => $paginated->lastPage(),
+                    'per_page'     => $paginated->perPage(),
+                    'total'        => $paginated->total(),
+                ]
+            ], JSON_UNESCAPED_UNICODE));
+            // return $this->repo->test();
         } catch (\Throwable $e) {
             Log::error('UserController@index error: ' . $e->getMessage());
-            return json(['error' => 'Server error'], 500);
+            return new Response(500, Response::$HEADERS_TEXT, json_encode(['success' => false, 'error' => 'Server error'], JSON_UNESCAPED_UNICODE));
         }
     }
 
-    /**
-     * Show a single user by id or username.
-     * GET /api/user?id=123  hoặc  /api/user?username=alice
-     */
-    public function show(Request $request)
+    // GET /api/v1/users/{id} or username
+    public function show(Request $request, string $identifier)
     {
         try {
-            $id       = $request->input('id');
-            $username = $request->input('username');
-
-            if ($id) {
-                $user = User::find($id);
-            } elseif ($username) {
-                $user = User::where('username', $username)->first();
+            // Determine if identifier is numeric (ID) or string (username)
+            $user = null;
+            if (ctype_digit($identifier)) {
+                $id = (int) $identifier;
+                $user = $this->interface->findByID($id);
             } else {
-                return json([
-                    'success' => false,
-                    'error'   => 'Missing id or username'
-                ], 400);
+                $username = $identifier;
+                $user = $this->interface->findByUsername($username);
             }
 
-            if (! $user) {
-                return json([
-                    'success' => false,
-                    'error'   => 'User not found'
-                ], 404);
+            if (!$user) {
+                return new Response(
+                    404,
+                    Response::$HEADERS_JSON,
+                    json_encode(['success' => false, 'error' => 'User not found'], JSON_UNESCAPED_UNICODE)
+                );
             }
 
-            return json([
-                'success' => true,
-                'data'    => $user->toArray()
-            ], 200);
+            return new Response(
+                200,
+                Response::$HEADERS_JSON,
+                json_encode(['success' => true, 'data' => $user->toArray()], JSON_UNESCAPED_UNICODE)
+            );
         } catch (\Throwable $e) {
             Log::error('UserController@show error: ' . $e->getMessage());
-            return json(['success' => false, 'error' => 'Server error'], 500);
+            return new Response(
+                500,
+                Response::$HEADERS_JSON,
+                json_encode(['success' => false, 'error' => 'Server error'], JSON_UNESCAPED_UNICODE)
+            );
         }
     }
 
-    /**
-     * Register a new user.
-     * POST /api/users/register
-     * body JSON: { username, password, [nickname], [email], [mobile], [sex], [avatar] }
-     */
-    public function register(Request $request)
+    // POST /api/v1/users/register
+    public function create(Request $request)
     {
         $data = $request->json();
-        foreach (['username', 'password'] as $f) {
-            if (empty($data[$f])) {
-                return json(['error' => "Missing $f"], 400);
-            }
+        $dataOnly  = $request->only(['username', 'password']);
+
+        $error = $this->validator->validateCreate($dataOnly);
+        if (!empty($error)) {
+            return new Response(400, Response::$HEADERS_JSON, json_encode(['error' => $error], JSON_UNESCAPED_UNICODE));
         }
-
         try {
-            $ip = method_exists($request, 'getRealIp')
-                ? $request->getRealIp()
-                : ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-
-            $now = date('Y-m-d H:i:s');
-
-            $user = User::create([
-                'username'   => $data['username'],
-                'password'   => password_hash($data['password'], PASSWORD_BCRYPT),
-                'nickname'   => $data['nickname'] ?? '',
-                'email'      => $data['email'] ?? null,
-                'mobile'     => $data['mobile'] ?? null,
-                'sex'        => in_array($data['sex'] ?? '1', ['0', '1']) ? $data['sex'] : '1',
-                'avatar'     => $data['avatar'] ?? null,
-                'role'       => $data['role'] ?? 1,
-                'join_time'  => $now,
-                'join_ip'    => $ip,
-            ]);
-
-            return json(['success' => true, 'user_id' => $user->id], 201);
+            $user = $this->interface->register($this->prepareRegistration($data, IpAddressHelper::getRequestIp($request)));
+            return new Response(201, Response::$HEADERS_JSON, json_encode(['success' => true, 'user_id' => $user->id], JSON_UNESCAPED_UNICODE));
         } catch (\Throwable $e) {
             Log::error('UserController@register error: ' . $e->getMessage());
-            return json(['error' => 'Cannot create user'], 500);
+            return new Response(500, Response::$HEADERS_JSON, json_encode(['error' => 'Cannot create user'], JSON_UNESCAPED_UNICODE));
         }
     }
 
-    /**
-     * Change password for authenticated user.
-     * POST /api/users/password
-     * body JSON: { old_password, new_password }
-     */
+    // POST /api/v1/users/password
     public function changePassword(Request $request)
     {
         $userId = $request->attributes['user_id'] ?? null;
-        if (! $userId) {
-            return json(['error' => 'Unauthorized'], 401);
+        if (!$userId) {
+            return new Response(
+                401,
+                Response::$HEADERS_JSON,
+                json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE)
+            );
         }
+
         $data = $request->json();
         if (empty($data['old_password']) || empty($data['new_password'])) {
-            return json(['error' => 'Missing old_password or new_password'], 400);
+            return new Response(
+                400,
+                Response::$HEADERS_JSON,
+                json_encode(['error' => 'Missing old_password or new_password'], JSON_UNESCAPED_UNICODE)
+            );
         }
 
-        try {
-            $user = User::find($userId);
-            if (! $user || ! password_verify($data['old_password'], $user->password)) {
-                return json(['error' => 'Old password incorrect'], 403);
-            }
-            $user->password = password_hash($data['new_password'], PASSWORD_BCRYPT);
-            $user->save();
+        if ($this->interface->changePassword($userId, $data['old_password'], $data['new_password'])) {
+            return new Response(
+                200,
+                Response::$HEADERS_JSON,
+                json_encode(['success' => true], JSON_UNESCAPED_UNICODE)
+            );
+        }
 
-            return json(['success' => true], 200);
+        return new Response(
+            403,
+            Response::$HEADERS_JSON,
+            json_encode(['error' => 'Old password incorrect'], JSON_UNESCAPED_UNICODE)
+        );
+    }
+
+    // PATCH /api/v1/users/last_login
+    public function updateLastLogin(Request $request)
+    {
+        try {
+            $userId = $request->attributes['user_id'] ?? null;
+            if (!$userId) {
+                return new Response(
+                    401,
+                    Response::$HEADERS_JSON,
+                    json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE)
+                );
+            }
+
+            $data = $request->json();
+            $payload = [
+                'last_time' => $data['last_time'] ?? date('Y-m-d H:i:s'),
+                'last_ip'   => IpAddressHelper::getRequestIp($request)
+            ];
+
+            if ($this->interface->updateLastLogin($userId, $payload)) {
+                return new Response(
+                    200,
+                    Response::$HEADERS_JSON,
+                    json_encode(array_merge(['success' => true], $payload), JSON_UNESCAPED_UNICODE)
+                );
+            }
+
+            return new Response(
+                500,
+                Response::$HEADERS_JSON,
+                json_encode(['error' => 'Cannot update last login'], JSON_UNESCAPED_UNICODE)
+            );
         } catch (\Throwable $e) {
-            Log::error('UserController@changePassword error: ' . $e->getMessage());
-            return json(['error' => 'Cannot change password'], 500);
+            Log::error('UserController@updateLastLogin error: ' . $e->getMessage());
+            return new Response(
+                500,
+                Response::$HEADERS_JSON,
+                json_encode(['error' => 'Server error'], JSON_UNESCAPED_UNICODE)
+            );
         }
     }
 
-    /**
-     * Update last login time/IP for authenticated user.
-     * PATCH /api/users/last_login
-     * body JSON: { last_time (optional), last_ip (optional) }
-     */
-    public function updateLastLogin(Request $request)
+    /** Helpers **/
+    protected function prepareRegistration(array $data, string $ip): array
     {
-        $userId = $request->attributes['user_id'] ?? null;
-        if (! $userId) {
-            return json(['error' => 'Unauthorized'], 401);
-        }
-        $data = $request->json();
-        $time = $data['last_time'] ?? date('Y-m-d H:i:s');
-        // Lấy IP client, ưu tiên header X-Forwarded-For nếu có
-        $ip = method_exists($request, 'getRealIp')
-            ? $request->getRealIp()
-            : ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-
-
-        try {
-            User::where('id', $userId)
-                ->update([
-                    'last_time' => $time,
-                    'last_ip'   => $ip
-                ]);
-
-            return json(['success' => true, 'last_time' => $time, 'last_ip' => $ip], 200);
-        } catch (\Throwable $e) {
-            Log::error('UserController@updateLastLogin error: ' . $e->getMessage());
-            return json(['error' => 'Cannot update last login'], 500);
-        }
+        $now = date('Y-m-d H:i:s');
+        return array_merge($data, [
+            'password'  => password_hash($data['password'], PASSWORD_BCRYPT),
+            'join_time' => $now,
+            'join_ip'   => $ip,
+        ]);
     }
 }

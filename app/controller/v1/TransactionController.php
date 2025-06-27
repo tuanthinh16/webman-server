@@ -18,8 +18,9 @@ class TransactionController
     {
         try {
             $query = DB::table('transactions');
+            $id = $request->input('id');
 
-            if ($id = $request->input('id')) {
+            if ($id) {
                 $query->where('id', $id);
             }
             if (! is_null($start = $request->input('start'))) {

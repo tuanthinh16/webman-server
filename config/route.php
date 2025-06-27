@@ -19,12 +19,12 @@ use app\controller\v1\TransactionController;
 use app\controller\v1\UserController;
 use app\controller\v1\WalletController;
 use app\middleware\AuthMiddleware;
-
+use app\middleware\CorsMiddleware;
 use support\Response;
 use Webman\Route;
 
-Route::post('/auth/v1/login', [AuthController::class, 'login']);
-Route::get('/search', [UserController::class, 'search']);
+Route::post('/auth/v1/login', [AuthController::class, 'login'])->middleware(CorsMiddleware::class);
+
 
 Route::group('/api', function () {
     Route::group('/v1', function () {
@@ -47,19 +47,10 @@ Route::group('/api', function () {
             Route::get('', [WalletController::class, 'getBalance']);
         });
         Route::group('/users', function () {
-            Route::get('/all', [UserController::class, 'show']);
-            Route::get('', [UserController::class, 'index']);
-            Route::post('/password',      [UserController::class, 'changePassword']);
-            Route::patch('/last_login',    [UserController::class, 'updateLastLogin']);
-            Route::post('/register',      [UserController::class, 'register']);
+            require base_path('app/routes/UserRoute.php');
         });
     });
-}, [
-    'middleware' => [
-        AuthMiddleware::class,
-    ],
-]);
-
+})->middleware([AuthMiddleware::class, CorsMiddleware::class]);
 
 //view
 Route::get('/test', function () {
