@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of webman.
  *
@@ -12,4 +13,12 @@
  * @license   http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
-return [];
+use app\repositories\user\UserInterface;
+use app\repositories\user\UserRepository;
+use Psr\Container\ContainerInterface;
+
+return [
+    UserInterface::class => function (ContainerInterface $container) {
+        return new UserRepository();
+    },
+];

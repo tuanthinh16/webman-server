@@ -2,6 +2,8 @@
 
 namespace app\middleware;
 
+use app\helper\IpAddressHelper;
+use app\helper\JwtHelper;
 use Webman\MiddlewareInterface;
 use Webman\Http\Request;
 use Firebase\JWT\JWT;
@@ -13,33 +15,29 @@ use Webman\Http\Response;
 
 class AuthMiddleware implements MiddlewareInterface
 {
-    private static string $secret;
-    private static string $algorithm = 'HS256';
+    private $jwtHelper;
 
     public function __construct()
     {
-        self::$secret = getenv('JWT_SECRET');
-        if (empty(self::$secret)) {
-            throw new \RuntimeException('JWT_SECRET is not configured in .env');
-        }
+        $this->jwtHelper = new JwtHelper();
     }
 
     public function process(Request $request, callable $next): Response
     {
 
-        Log::info('loadding middleware');
-        $ip = method_exists($request, 'getRealIp')
-            ? $request->getRealIp()
-            : ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-        Log::debug('request from IP: ' . $ip);
-
+        // Log::info('loadding middleware');
+        $ip = IpAddressHelper::getRequestIp($request);
+        Log::debug('Request from IP: ' . $ip);
+        if ($this->shouldSkipAuth($request)) {
+            return $next($request);
+        }
         $token = $this->extractToken($request);
         if (!$token) {
             return $this->unauthorizedResponse('Missing authorization token');
         }
 
         try {
-            $decoded = $this->decodeToken($token);
+            $decoded = $this->jwtHelper->decodeToken($token);
             $this->attachUserData($request, $decoded);
         } catch (ExpiredException $e) {
             return $this->unauthorizedResponse('Token expired', 401);
@@ -50,7 +48,17 @@ class AuthMiddleware implements MiddlewareInterface
         }
         return $next($request);
     }
+    protected function shouldSkipAuth(Request $request): bool
+    {
+        $publicRoutes = [
+            '/api/v1/users/register',
+            '/api/v1/auth/login',
+            '/api/v1/users/search',
+            '/'
+        ];
 
+        return in_array($request->path(), $publicRoutes);
+    }
     protected function extractToken(Request $request): ?string
     {
         $authHeader = $request->header('Authorization', '');
@@ -60,10 +68,6 @@ class AuthMiddleware implements MiddlewareInterface
         return null;
     }
 
-    protected function decodeToken(string $token): object
-    {
-        return JWT::decode($token, new Key(self::$secret, self::$algorithm));
-    }
 
     protected function attachUserData(Request $request, object $decoded): void
     {

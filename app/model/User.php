@@ -25,4 +25,3 @@ class User extends Model
     ];
     protected $dates = ['birthday', 'join_time', 'last_time', 'created_at', 'updated_at'];
 }
-
