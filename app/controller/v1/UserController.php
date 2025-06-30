@@ -49,7 +49,6 @@ class UserController
         try {
             $perPage = (int)$request->input('per_page', 15);
             $paginated = $this->userInterface->listUsers($perPage);
-
             // Nếu trả về paginator (LengthAwarePaginator)
             if (is_object($paginated) && method_exists($paginated, 'items')) {
                 $data = $paginated->items();
