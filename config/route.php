@@ -24,6 +24,7 @@ use support\Response;
 use Webman\Route;
 
 Route::post('/auth/v1/login', [AuthController::class, 'login'])->middleware(CorsMiddleware::class);
+Route::get('/testview',      [UserController::class, 'testview']);
 
 
 Route::group('/api', function () {
@@ -54,7 +55,7 @@ Route::group('/api', function () {
 
 //view
 Route::get('/test', function () {
-    $file = public_path() . '/socket.html';
+    $file = public_path() . '/mail-service.html';
     if (! is_file($file)) {
         return new Response(404, ['Content-Type' => 'text/plain']);
     }

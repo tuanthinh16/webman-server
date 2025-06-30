@@ -11,6 +11,8 @@ class UserRepository implements UserInterface
 {
     protected $cachePrefix;
     protected $esClient;
+    protected $modelClass = User::class;
+    protected $index = 'wa_users';
 
     public function __construct()
     {
@@ -22,12 +24,6 @@ class UserRepository implements UserInterface
         }
         $this->cachePrefix = $this->cachePrefix ?? strtolower(class_basename($this->modelClass)) . 's';
     }
-    protected $modelClass = User::class;
-    // By default, cachePrefix = 'users'
-    protected $index = 'wa_users';
-    /**
-     * You can add User-specific queries here, e.g., findByUsername.
-     */
     public function findByUsername(string $username)
     {
         return ($this->modelClass)::where('username', $username)->first();
@@ -35,18 +31,10 @@ class UserRepository implements UserInterface
 
     public function listUsers(int $perPage = 15)
     {
-        $data = ($this->modelClass)::select('id', 'username', 'email')->paginate($perPage);
+        $page = (int)request()->input('page', 1);
+        $data = ($this->modelClass)::select('id', 'username', 'email')->paginate($perPage, ['*'], 'page', $page);
 
-        $page = (int)(request()->input('page', 1));
-        $items = array_slice($data, ($page - 1) * $perPage, $perPage);
-
-        return new \Illuminate\Pagination\LengthAwarePaginator(
-            $items,
-            count($data),
-            $perPage,
-            $page,
-            ['path' => request()->url(), 'query' => request()->queryString()]
-        );
+        return $data;
     }
     public function findByID(int $id)
     {
@@ -78,71 +66,80 @@ class UserRepository implements UserInterface
 
     public function search(string $keyword, int $perPage)
     {
-       
-        if (!$this->esClient->indices()->exists(['index' => $this->index])->asBool()) {
-            $this->esClient->indices()->create([
+
+        try {
+            if (!$this->esClient->indices()->exists(['index' => $this->index])->asBool()) {
+                $this->esClient->indices()->create([
+                    'index' => $this->index,
+                    'body'  => ['mappings' => ['properties' => [
+                        'nickname' => ['type' => 'text'],
+                        'username' => ['type' => 'text'],
+                    ]]]
+                ]);
+            }
+            $data = "";
+            if (!Redis::exists('users')) {
+                $data = User::all()->toArray();
+
+                Redis::set('users', json_encode($data));
+            } else {
+                $data = json_decode(Redis::get('users'), true);
+            }
+            $bulkParams = ['body' => []];
+
+            foreach ($data as $user) {
+                $bulkParams['body'][] = [
+                    'index' => ['_index' => $this->index, '_id' => $user['id']]
+                ];
+                $bulkParams['body'][] = [
+                    'id'          => $user['id'],
+                    'nickname'    => $user['nickname'],
+                    'username'    => $user['username'],
+                    'email'       => $user['email'],
+                    'created_at'  => $user['created_at'],
+                    'updated_at'  => $user['updated_at'],
+                    'join_time'   => $user['join_time'],
+                    'join_ip'     => $user['join_ip'],
+                    'last_time'   => $user['last_time'],
+                    'last_ip'     => $user['last_ip'],
+                    //.....
+                ];
+            }
+
+            $this->esClient->bulk($bulkParams);
+            $params = [
                 'index' => $this->index,
-                'body'  => ['mappings' => ['properties' => [
-                    'nickname' => ['type' => 'text'],
-                    'username' => ['type' => 'text'],
-                ]]]
-            ]);
-        }
-        $data = "";
-        if (!Redis::exists('users')) {
-            $data = User::all()->toArray();
-
-            Redis::set('users', json_encode($data));
-        } else {
-            $data = json_decode(Redis::get('users'), true);
-        }
-        $bulkParams = ['body' => []];
-
-        foreach ($data as $user) {
-            $bulkParams['body'][] = [
-                'index' => ['_index' => $this->index, '_id' => $user['id']]
-            ];
-            $bulkParams['body'][] = [
-                'id'          => $user['id'],
-                'nickname'    => $user['nickname'],
-                'username'    => $user['username'],
-                'email'       => $user['email'],
-                'created_at'  => $user['created_at'],
-                'updated_at'  => $user['updated_at'],
-                'join_time'   => $user['join_time'],
-                'join_ip'     => $user['join_ip'],
-                'last_time'   => $user['last_time'],
-                'last_ip'     => $user['last_ip'],
-                //.....
-            ];
-        }
-
-        $this->esClient->bulk($bulkParams);
-        $params = [
-            'index' => $this->index,
-            'body'  => [
-                'query' => [
-                    'bool' => [
-                        'should' => [
-                            ['wildcard' => ['nickname' => '*' . strtolower($keyword) . '*']],
-                            ['wildcard' => ['username' => '*' . strtolower($keyword) . '*']],
+                'body'  => [
+                    'query' => [
+                        'bool' => [
+                            'should' => [
+                                ['wildcard' => ['nickname' => '*' . strtolower($keyword) . '*']],
+                                ['wildcard' => ['username' => '*' . strtolower($keyword) . '*']],
+                            ]
                         ]
                     ]
                 ]
-            ]
-        ];
-        $response = $this->esClient->search($params);
-        $hits = isset($response['hits']['hits']) && is_array($response['hits']['hits'])
-            ? array_map(fn($h) => $h['_source'], $response['hits']['hits'])
-            : [];
-        $page = request()->input('page', 1);
-        return new \Illuminate\Pagination\LengthAwarePaginator(
-            $hits,
-            count($hits),
-            $perPage,
-            $page,
-            ['path' => request()->url(), 'query' => request()->queryString()]
-        );
+            ];
+            $response = $this->esClient->search($params);
+            $hits = isset($response['hits']['hits']) && is_array($response['hits']['hits'])
+                ? array_map(fn($h) => $h['_source'], $response['hits']['hits'])
+                : [];
+            $page = request()->input('page', 1);
+
+            $total = count($hits);
+            $items = array_slice($hits, ($page - 1) * $perPage, $perPage);
+
+            return new \Illuminate\Pagination\LengthAwarePaginator(
+                $items,
+                $total,
+                $perPage,
+                $page,
+                ['path' => request()->url(), 'query' => request()->queryString()]
+            );
+        } catch (\Throwable $e) {
+            Log::error('UserRepository@search error: ' . $e->getMessage());
+            throw $e;
+        }
     }
     public function updateLastLogin(int $userId, array $payload): bool
     {

@@ -3,22 +3,30 @@
 namespace app\controller\v1;
 
 use app\helper\IpAddressHelper;
-use app\model\User;
+use app\helper\OtpCodeHelper;
+use app\repositories\otp\OtpRepository;
 use app\repositories\user\UserInterface;
+use app\services\EmailOtpSender;
+use app\services\MailService;
 use app\validation\user\UserValidate;
 use support\Request;
 use support\Response;
 use support\Log;
-use Workerman\Events\Uv;
+use GuzzleHttp\Client;
 
 class UserController
 {
     protected UserInterface $userInterface;
+    protected OtpRepository $otpRepository;
     public function __construct(UserInterface $userInterface)
     {
         $this->userInterface = $userInterface;
+        $this->otpRepository = new OtpRepository();
     }
-
+    public function testview()
+    {
+        return view('mail-service');
+    }
     // GET /search?q=keyword&page=1&per_page=15
     public function search(Request $request)
     {
@@ -39,39 +47,43 @@ class UserController
             ], JSON_UNESCAPED_UNICODE));
         } catch (\Throwable $e) {
             Log::error('UserController@search error: ' . $e->getMessage());
-            return new Response(500, Response::$HEADERS_JSON, json_encode(['status' => false, 'error' => 'Server error'], JSON_UNESCAPED_UNICODE));
+            return Response::ServerError();
         }
     }
-
     // GET /api/v1/users
     public function index(Request $request)
     {
         try {
+
+            // $mailotp = new EmailOtpSender();
+            // $otp = $mailotp->generateOtp(1);
+            // $result = $mailotp->send(1, $otp, 'dotuanthinh37.work@gmail.com');
+            // return $result;
             $perPage = (int)$request->input('per_page', 15);
-            $paginated = $this->userInterface->listUsers($perPage);
+            $data = $this->userInterface->listUsers($perPage);
             // Nếu trả về paginator (LengthAwarePaginator)
-            if (is_object($paginated) && method_exists($paginated, 'items')) {
-                $data = $paginated->items();
+            if (is_object($data) && method_exists($data, 'items')) {
+                $result = $data->items();
                 $pagination = [
-                    'current_page' => $paginated->currentPage(),
-                    'last_page'    => $paginated->lastPage(),
-                    'per_page'     => $paginated->perPage(),
-                    'total'        => $paginated->total(),
+                    'current_page' => $data->currentPage(),
+                    'last_page'    => $data->lastPage(),
+                    'per_page'     => $data->perPage(),
+                    'total'        => $data->total(),
                 ];
             } else {
                 // Nếu trả về mảng (không phân trang)
-                $data = $paginated;
+                $result = $data;
                 $pagination = null;
             }
 
             return new Response(200, Response::$HEADERS_JSON, json_encode([
-                'success' => true,
-                'data' => $data,
+                'status' => true,
+                'data' => $result,
                 'pagination' => $pagination,
             ], JSON_UNESCAPED_UNICODE));
         } catch (\Throwable $e) {
             Log::error('UserController@index error: ' . $e->getMessage());
-            return new Response(500, Response::$HEADERS_TEXT, json_encode(['success' => false, 'error' => 'Server error'], JSON_UNESCAPED_UNICODE));
+            return Response::ServerError();
         }
     }
 
@@ -93,77 +105,196 @@ class UserController
                 return new Response(
                     404,
                     Response::$HEADERS_JSON,
-                    json_encode(['success' => false, 'error' => 'User not found'], JSON_UNESCAPED_UNICODE)
+                    json_encode(['status' => false, 'message' => 'User not found'], JSON_UNESCAPED_UNICODE)
                 );
             }
 
             return new Response(
                 200,
                 Response::$HEADERS_JSON,
-                json_encode(['success' => true, 'data' => $user->toArray()], JSON_UNESCAPED_UNICODE)
+                json_encode(['status' => true, 'data' => $user->toArray()], JSON_UNESCAPED_UNICODE)
             );
         } catch (\Throwable $e) {
             Log::error('UserController@show error: ' . $e->getMessage());
-            return new Response(
-                500,
-                Response::$HEADERS_JSON,
-                json_encode(['success' => false, 'error' => 'Server error'], JSON_UNESCAPED_UNICODE)
-            );
+            return Response::ServerError();
         }
     }
 
     // POST /api/v1/users/register
     public function create(Request $request)
     {
-        $data = $request->only(['username', 'password']);
+        $data = $request->only(['username', 'password', 'email']);
         $validated = UserValidate::validate($data);
-
-        if ($validated['status'] === false) {
-            $error = $validated['errors'];
-        }
-        try {
-            $user = $this->userInterface->register($this->prepareRegistration($data, IpAddressHelper::getRequestIp($request)));
-            return new Response(201, Response::$HEADERS_JSON, json_encode(['success' => true, 'user_id' => $user->id], JSON_UNESCAPED_UNICODE));
-        } catch (\Throwable $e) {
-            Log::error('UserController@register error: ' . $e->getMessage());
-            return new Response(500, Response::$HEADERS_JSON, json_encode(['error' => 'Cannot create user'], JSON_UNESCAPED_UNICODE));
-        }
-    }
-
-    // POST /api/v1/users/password
-    public function changePassword(Request $request)
-    {
-        $userId = $request->attributes['user_id'] ?? null;
-        if (!$userId) {
-            return new Response(
-                401,
-                Response::$HEADERS_JSON,
-                json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE)
-            );
-        }
-
-        $data = $request->json();
-        if (empty($data['old_password']) || empty($data['new_password'])) {
+        // return json_encode($validated, JSON_UNESCAPED_UNICODE);
+        $error = null;
+        if ($validated['status'] === FALSE) {
+            $error = $validated['message'];
+            Log::error('UserController@register error from validate: ' . json_encode($error));
             return new Response(
                 400,
                 Response::$HEADERS_JSON,
-                json_encode(['error' => 'Missing old_password or new_password'], JSON_UNESCAPED_UNICODE)
+                json_encode(['status' => false, 'message' => $error], JSON_UNESCAPED_UNICODE)
             );
         }
+        try {
+            $user = $this->userInterface->register($this->prepareRegistration($data, IpAddressHelper::getRequestIp($request)));
+            if (!$user) {
+                $error = 'User registration failed';
+                Log::error('UserController@register error: ' . $error);
+                return new Response(500, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => $error], JSON_UNESCAPED_UNICODE));
+            }
 
-        if ($this->userInterface->changePassword($userId, $data['old_password'], $data['new_password'])) {
+
+            $createdAt = date('Y-m-d H:i:s');
+            $otpCode   = OtpCodeHelper::generateOtp(6);
+
+            $secret    = env('JWT_SECRET', 'some_random_secret');
+            $hash      = hash_hmac(
+                'sha256',
+                "{$user->id}|{$otpCode}|{$createdAt}",
+                $secret
+            );
+
+            $otp = $this->otpRepository->create([
+                'user_id'    => $user->id,
+                'otp_code'   => $otpCode,
+                'created_at' => $createdAt,
+                'valid_time' => date('Y-m-d H:i:s', strtotime('+10 minutes')),
+                'is_used'    => 0,
+                'hash'       => $hash,
+                'type'       => 'register',
+            ]);
+            if (!$otp) {
+                $error = 'OTP creation failed';
+                Log::error('UserController@register error: ' . $error);
+                return Response::ServerError();
+            }
+            // Send OTP to user email
+            $mailService = new EmailOtpSender();
+            $result = $mailService->send($user->id, $otpCode, $user->email, 'Xác nhận đăng ký tài khoản');
+            if (!$result) {
+                $error = 'Failed to send OTP email';
+                Log::error('UserController@register error: ' . $error);
+                return Response::ServerError();
+            }
+            return new Response(201, Response::$HEADERS_JSON, json_encode(['status' => true, 'user_id' => $user->id, 'send-otp' => $result, 'email' => $user->email], JSON_UNESCAPED_UNICODE));
+        } catch (\Throwable $e) {
+            Log::error('UserController@register error: ' . $e->getMessage());
+            return Response::ServerError($error ?? 'Server error');
+        }
+    }
+    // POST /api/v1/users/confirm
+    public function confirmRegister(Request $request)
+    {
+        try {
+            $data = $request->json();
+            if (empty($data['otp']) || empty($data['user_id'])) {
+                return new Response(
+                    400,
+                    Response::$HEADERS_JSON,
+                    json_encode(['message' => 'Missing otp or user_id'], JSON_UNESCAPED_UNICODE)
+                );
+            }
+
+            $otp = $this->otpRepository->findByUserIdAndOtp($data['user_id'], $data['otp'], 'register');
+            // Validate user ID
+            if (!$otp) {
+                return new Response(
+                    404,
+                    Response::$HEADERS_JSON,
+                    json_encode(['message' => 'OTP not found'], JSON_UNESCAPED_UNICODE)
+                );
+            }
+            // Check if OTP is already used
+            if ($otp->is_used) {
+                return new Response(
+                    403,
+                    Response::$HEADERS_JSON,
+                    json_encode(['message' => 'OTP already used'], JSON_UNESCAPED_UNICODE)
+                );
+            }
+            // Check if OTP is expired
+            if (strtotime($otp->valid_time) < time()) {
+                return new Response(
+                    410,
+                    Response::$HEADERS_JSON,
+                    json_encode(['message' => 'OTP expired'], JSON_UNESCAPED_UNICODE)
+                );
+            }
+            //Verify OTP code
+            if ($otp->otp_code !== $data['otp']) {
+                return new Response(
+                    403,
+                    Response::$HEADERS_JSON,
+                    json_encode(['message' => 'Invalid OTP code'], JSON_UNESCAPED_UNICODE)
+                );
+            }
+            // Verify OTP hash
+            $secret = env('JWT_SECRET', 'some_random_secret');
+            $hash = hash_hmac(
+                'sha256',
+                "{$otp->user_id}|{$data['otp']}|{$otp->created_at}",
+                $secret
+            );
+            if ($hash !== $otp->hash) {
+                return new Response(
+                    403,
+                    Response::$HEADERS_JSON,
+                    json_encode(['message' => 'Invalid OTP'], JSON_UNESCAPED_UNICODE)
+                );
+            }
+            $this->userInterface->update($data['user_id'], ['status' => 1]);
+            $this->otpRepository->markAsUsed($otp->id);
+
             return new Response(
                 200,
                 Response::$HEADERS_JSON,
-                json_encode(['success' => true], JSON_UNESCAPED_UNICODE)
+                json_encode(['status' => true], JSON_UNESCAPED_UNICODE)
             );
+        } catch (\Throwable $e) {
+            Log::error('UserController@confirmRegister error: ' . $e->getMessage());
+            return Response::ServerError();
         }
+    }
+    // POST /api/v1/users/password
+    public function changePassword(Request $request)
+    {
+        try {
+            $userId = $request->attributes['user_id'] ?? null;
+            if (!$userId) {
+                return new Response(
+                    401,
+                    Response::$HEADERS_JSON,
+                    json_encode(['message' => 'Unauthorized'], JSON_UNESCAPED_UNICODE)
+                );
+            }
 
-        return new Response(
-            403,
-            Response::$HEADERS_JSON,
-            json_encode(['error' => 'Old password incorrect'], JSON_UNESCAPED_UNICODE)
-        );
+            $data = $request->json();
+            if (empty($data['old_password']) || empty($data['new_password'])) {
+                return new Response(
+                    400,
+                    Response::$HEADERS_JSON,
+                    json_encode(['message' => 'Missing old_password or new_password'], JSON_UNESCAPED_UNICODE)
+                );
+            }
+
+            if ($this->userInterface->changePassword($userId, $data['old_password'], $data['new_password'])) {
+                return new Response(
+                    200,
+                    Response::$HEADERS_JSON,
+                    json_encode(['status' => true], JSON_UNESCAPED_UNICODE)
+                );
+            }
+
+            return new Response(
+                403,
+                Response::$HEADERS_JSON,
+                json_encode(['message' => 'Old password incorrect'], JSON_UNESCAPED_UNICODE)
+            );
+        } catch (\Throwable $e) {
+            Log::error('UserController@changePassword error: ' . $e->getMessage());
+            return Response::ServerError();
+        }
     }
 
     /** Helpers **/
@@ -174,6 +305,7 @@ class UserController
             'password'  => password_hash($data['password'], PASSWORD_BCRYPT),
             'join_time' => $now,
             'join_ip'   => $ip,
+            'status'    => 0,
             'nickname' => $data['username'] ?? ''
         ]);
     }

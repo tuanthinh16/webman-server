@@ -40,4 +40,8 @@ class Response extends BaseResponse
         // Content-Disposition có thể điều chỉnh filename khi cần
         'Content-Disposition' => 'attachment; filename="download.bin"',
     ];
+    public static function ServerError(string $message = 'Server error', int $status = 500)
+    {
+        return new static($status, self::$HEADERS_JSON, json_encode(['status' => false, 'message' => $message], JSON_UNESCAPED_UNICODE));
+    }
 }

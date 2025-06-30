@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thư mời nhận việc</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
+    /* Reset cơ bản */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+    }
+    .container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .card {
+      background-color: #fff;
+      width: 100%;
+      max-width: 600px;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+      transition: box-shadow 0.3s ease;
+      overflow: hidden;
+    }
+    .card:hover { box-shadow: 0 15px 30px -5px rgba(0,0,0,0.15); }
+    .card-content { padding: 32px; }
+    .header { text-align: center; margin-bottom: 24px; }
+    .icon-circle {
+      width: 64px; height: 64px;
+      background-color: #e6f4ea;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .icon-circle svg { width: 32px; height: 32px; color: #16a34a; }
+    .title {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: #16a34a;
+      margin-bottom: 8px;
+    }
+    .underline { width: 80px; height: 4px; background-color: #d1fae5; margin: 0 auto; border-radius: 2px; }
+    .greeting { margin-bottom: 16px; color: #374151; }
+    .highlight {
+      background-color: #ecfdf5;
+      border-left: 4px solid #4ade80;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      color: #374151;
+    }
+    .details { margin-bottom: 24px; }
+    .detail-item { display: flex; align-items: flex-start; margin-bottom: 16px; }
+    .detail-icon {
+      width: 24px; height: 24px;
+      flex-shrink: 0;
+      margin-right: 12px;
+      color: #10b981;
+    }
+    .detail-text span { display: block; }
+    .detail-text .label { font-size: 0.875rem; color: #6b7280; }
+    .detail-text .value { font-weight: 500; color: #111827; }
+    .confirm-btn {
+      display: inline-block;
+      background-color: #16a34a;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 12px 32px;
+      border-radius: 8px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+    }
+    .confirm-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(72,187,120,0.4);
+    }
+    .footer {
+      border-top: 1px solid #e5e7eb;
+      padding-top: 24px;
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+    .footer .company { display: block; font-weight: 600; color: #16a34a; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="card-content">
+        <div class="header">
+          <div class="icon-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h1 class="title">Thư mời nhận việc</h1>
+          <div class="underline"></div>
+        </div>
+
+        <p class="greeting">
+          Kính gửi <strong><?= htmlspecialchars($name ?? 'Ứng viên') ?></strong>,
+        </p>
+
+        <div class="highlight">
+          Chúng tôi rất vui mừng thông báo bạn đã vượt qua các vòng tuyển chọn và được mời nhận vị trí <strong><?= htmlspecialchars($position ?? 'Nhân viên') ?></strong> tại công ty <strong><?= htmlspecialchars($company ?? 'ABC Corp') ?></strong>.
+        </div>
+
+        <div class="details">
+          <div class="detail-item">
+            <svg xmlns="http://www.w3.org/2000/svg" class="detail-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <div class="detail-text">
+              <span class="label">Thời gian nhận việc</span>
+              <span class="value"><?= htmlspecialchars($start_time ?? 'dd/mm/yyyy') ?></span>
+            </div>
+          </div>
+
+          <div class="detail-item">
+            <svg xmlns="http://www.w3.org/2000/svg" class="detail-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <div class="detail-text">
+              <span class="label">Địa điểm làm việc</span>
+              <span class="value"><?= htmlspecialchars($workplace ?? 'Văn phòng công ty') ?></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <a href="<?= htmlspecialchars($confirm_url ?? '#') ?>" class="confirm-btn">Xác nhận nhận việc</a>
+        </div>
+
+        <div class="footer">
+          Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi qua email hoặc số điện thoại trong chữ ký dưới đây.
+          <span class="company"><?= htmlspecialchars($company ?? 'ABC Corp') ?></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

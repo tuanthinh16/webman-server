@@ -18,7 +18,7 @@ services:
       - webman-network
     env_file:
       - .env
-
+ 
   mysql:
     build:
       context: .
@@ -38,6 +38,7 @@ services:
     restart: always
     ports:
       - "6379:6379"
+      - "6380:6380"
     networks:
       - webman-network
 

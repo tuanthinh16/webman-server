@@ -9,6 +9,7 @@ class User extends Model
 {
     protected $table = 'wa_users';
     public $timestamps = false; // hoặc true nếu bạn muốn Eloquent tự động quản lý created_at/updated_at
+
     protected $fillable = [
         'username',
         'password',

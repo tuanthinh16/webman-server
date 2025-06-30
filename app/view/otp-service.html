@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Thư mời nhận việc</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
+    /* Reset và cơ bản */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background-color: #f5f5f5;
+      line-height: 1.6;
+      color: #333;
+    }
+    .container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .offer-card {
+      background-color: #fff;
+      border: 1px solid #f3f3f3;
+      border-radius: 16px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+      transition: box-shadow 0.3s ease;
+      overflow: hidden;
+    }
+    .offer-card:hover {
+      box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.15);
+    }
+    .offer-content {
+      padding: 32px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .icon-circle {
+      width: 64px;
+      height: 64px;
+      background-color: #E6F4EA;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .icon-circle svg {
+      width: 32px;
+      height: 32px;
+      color: #1C6334;
+    }
+    .title {
+      font-size: 1.5rem;
+      color: #1C6334;
+      margin-bottom: 8px;
+    }
+    .subtitle-bar {
+      width: 80px;
+      height: 4px;
+      background-color: #E6F4EA;
+      border-radius: 2px;
+      margin: 0 auto;
+    }
+    .highlight-box {
+      background-color: #F0FCF5;
+      border-left: 4px solid #4CAF50;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+    .highlight-box p {
+      color: #4B5563;
+    }
+    .otp-button {
+      display: inline-block;
+      background-color: #1C6334;
+      color: #fff;
+      font-weight: 500;
+      padding: 12px 32px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: default;
+    }
+    .otp-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(72, 187, 120, 0.4);
+    }
+    .footer {
+      border-top: 1px solid #f3f3f3;
+      padding-top: 24px;
+      font-size: 0.875rem;
+      color: #6B7280;
+    }
+    .footer .company {
+      display: block;
+      font-weight: 600;
+      color: #1C6334;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="offer-card">
+      <div class="offer-content">
+        <div class="header">
+          <div class="icon-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h1 class="title">OTP Verify</h1>
+          <div class="subtitle-bar">Xin chào <?= htmlspecialchars($name ?? '') ?></div>
+        </div>
+
+        <div class="highlight-box">
+          <p>Hãy dùng mã xác thực dưới đây để hoàn tất quá trình tạo tài khoản của bạn <strong>Hiệu lực trong 2 phút</strong></p>
+        </div>
+
+        <div class="text-center" style="margin-bottom: 24px;">
+          <span class="otp-button"><?= htmlspecialchars($otp ?? '') ?></span>
+        </div>
+
+        <div class="footer">
+          <p>Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi qua email hoặc số điện thoại trong chữ ký dưới đây.</p>
+          <span class="company"><?= htmlspecialchars($company ?? 'ABC Corp') ?></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

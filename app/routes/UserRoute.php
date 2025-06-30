@@ -8,3 +8,4 @@ Route::get('/search', [UserController::class, 'search']);
 Route::get('/{identifier}', [UserController::class, 'show']);
 Route::post('/register', [UserController::class, 'create']);
 Route::post('/password', [UserController::class, 'changePassword']);
+Route::post('/confirm', [UserController::class, 'confirmRegister']);

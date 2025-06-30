@@ -4,6 +4,7 @@ namespace app\controller\v1;
 
 use app\middleware\AuthMiddleware;
 use app\model\Order;
+use app\repositories\order\OrderInterface;
 use Exception;
 use support\Request;
 use support\Response;
@@ -12,75 +13,43 @@ use support\Log;
 
 class OrderController
 {
+    protected OrderInterface $oderInterface;
+
+    public function __construct(OrderInterface $oderInterface)
+    {
+        $this->oderInterface = $oderInterface;
+    }
+
     /**
      * Get all orders for the authenticated user.
      * Method: GET /api/orders
      */
     public function getByUserID(Request $request)
     {
-        // 1) Auth
         if (!isset($request->user['id'])) {
             return AuthMiddleware::unauthorizedResponse('', 401);
         }
-
         $userId = $request->user['id'];
-
-        $start = (int) $request->input('start', 0);
-        $limit = (int) $request->input('limit', 0);
-        $order_id =  $request->input('id', null);
-        $order_field = $request->input('order_field', 'id');
-        $order_by = $request->input('order_by', null);
-        $message = '';
-        $query = DB::table('orders')
-            ->where('user_id', $userId);
-
-        if ($order_id > 0) {
-            $query->where('id', $order_id);
-        }
-        if ($order_by) {
-            if (in_array($order_by, ['asc', 'desc'], true)) {
-                $query->orderBy($order_field, $order_by);
-            } else {
-                $message = "Invalid order by type";
-            }
-        }
-        if ($limit > 0) {
-            $query->offset(max(0, $start))->limit($limit);
-        }
-
-        // 4) Execute
-        $orders = $query->get()->toArray();
-
-        // 5) Log for debugging
-        // Log::info("Fetched orders for user {$userId} (start={$start}, limit={$limit}): " . json_encode($orders, JSON_UNESCAPED_UNICODE));
-
-        // 6) Return JSON
-        $payload = [
-            'success'     => true,
-            'message'     => $message,
-            'start'       => $start,
-            'limit'       => $limit,
-            'id'          => $order_id,
-            'order_by'    => $order_by,
-            'order_field' => $order_field,
-            'count'       => count($orders),
-            'data'        => $orders,
+        $params = [
+            'start' => (int)$request->input('start', 0),
+            'limit' => (int)$request->input('limit', 0),
+            'id' => $request->input('id', null),
+            'order_field' => $request->input('order_field', 'id'),
+            'order_by' => $request->input('order_by', null),
+            'per_page' => (int)$request->input('per_page', 15),
+            'page' => (int)$request->input('page', 1),
         ];
-
-        // 1) Encode to JSON
-        $body = json_encode($payload, JSON_UNESCAPED_UNICODE);
-
-        // 2) Build header lines
-        $headers = [
-            'Content-Type' => 'application/json'
-        ];
-
-        // 3) Return raw Response(body, statusString, headerLines)
-        return new Response(
-            200,
-            $headers,
-            $body
-        );
+        $orders = $this->oderInterface->getByUserID($userId, $params, $params['per_page']);
+        return new Response(200, ['Content-Type' => 'application/json'], json_encode([
+            'success' => true,
+            'data' => $orders->items(),
+            'pagination' => [
+                'current_page' => $orders->currentPage(),
+                'last_page'    => $orders->lastPage(),
+                'per_page'     => $orders->perPage(),
+                'total'        => $orders->total(),
+            ]
+        ], JSON_UNESCAPED_UNICODE));
     }
 
 
@@ -91,56 +60,55 @@ class OrderController
     public function place(Request $request)
     {
         // $userId = $request->attributes['user_id'] ?? null;
-        if (!isset($request->user['id'])) {
-            return AuthMiddleware::unauthorizedResponse('', 401);
-        }
-
-        $userId = $request->user['id'];
-        if (! $userId) {
-            return json([
-                'success' => false,
-                'error'   => 'Unauthorized: missing user_id'
-            ], 401);
-        }
-
-        $payload = $request->json(true);
-        // basic validation
-        foreach (['id', 'params'] as $f) {
-            if (! isset($payload[$f])) {
-                return json([
-                    'success' => false,
-                    'error'   => "Missing field: {$f}"
-                ], 400);
-            }
-        }
-        $p = $payload['params'];
-        foreach (['symbol', 'side', 'type', 'timeInForce', 'price', 'quantity', 'timestamp', 'signature'] as $f) {
-            if (! isset($p[$f])) {
-                return json([
-                    'success' => false,
-                    'error'   => "Missing params.{$f}"
-                ], 400);
-            }
-        }
-
-        // Lấy pre_hash từ order cuối cùng
-        $last = DB::table('orders')
-            ->orderBy('id', 'desc')
-            ->limit(1)
-            ->first(['hash']);
-        $preHash = $last->hash ?? str_repeat('0', 64);
-
-        // Tính hash dựa trên pre_hash + timestamp + price + user_id + quantity
-        $dataToHash = $preHash
-            . $p['timestamp']
-            . $p['price']
-            . $userId
-            . $p['quantity'];
-        $hash = hash('sha256', $dataToHash);
-
-        // Insert
         try {
-            $id = DB::table('orders')->insertGetId([
+            if (!isset($request->user['id'])) {
+                return AuthMiddleware::unauthorizedResponse('', 401);
+            }
+
+            $userId = $request->user['id'];
+            if (! $userId) {
+                return json([
+                    'success' => false,
+                    'error'   => 'Unauthorized: missing user_id'
+                ], 401);
+            }
+
+            $payload = $request->json(true);
+            // basic validation
+            foreach (['id', 'params'] as $f) {
+                if (! isset($payload[$f])) {
+                    return json([
+                        'success' => false,
+                        'error'   => "Missing field: {$f}"
+                    ], 400);
+                }
+            }
+            $p = $payload['params'];
+            foreach (['symbol', 'side', 'type', 'timeInForce', 'price', 'quantity', 'timestamp', 'signature'] as $f) {
+                if (! isset($p[$f])) {
+                    return json([
+                        'success' => false,
+                        'error'   => "Missing params.{$f}"
+                    ], 400);
+                }
+            }
+
+            // Lấy pre_hash từ order cuối cùng
+            // $last = DB::table('orders')
+            //     ->orderBy('id', 'desc')
+            //     ->limit(1)
+            //     ->first(['hash']);
+            $last = $this->oderInterface->getLastHash();
+            $preHash = $last->hash ?? str_repeat('0', 64);
+
+            // Tính hash dựa trên pre_hash + timestamp + price + user_id + quantity
+            $dataToHash = $preHash
+                . $p['timestamp']
+                . $p['price']
+                . $userId
+                . $p['quantity'];
+            $hash = hash('sha256', $dataToHash);
+            $payload = [
                 'request_id'    => $payload['id'],
                 'user_id'       => $userId,
                 'symbol'        => $p['symbol'],
@@ -157,20 +125,31 @@ class OrderController
                 'status'        => 'pending',
                 'response'      => null,
                 'created_at'    => date('Y-m-d H:i:s'),
-            ]);
-        } catch (\Throwable $e) {
-            return new Response(500, [], json_encode([
-                'success' => false,
-                'error'   => $e->getMessage()
-            ], JSON_UNESCAPED_UNICODE));
-        }
+            ];
+            // Insert
+            try {
+                $order_id = $this->oderInterface->create($payload);
+            } catch (\Throwable $e) {
+                Log::error('OrderController@place error: ' . $e->getMessage(), [
+                    'user_id' => $userId,
+                    'payload' => $payload,
+                ]);
+                return Response::ServerError('Failed to create order');
+            }
 
-        return new Response(200, ['Content-Type' => 'application/json'], json_encode([
-            'success'     => true,
-            'order_db_id' => $id,
-            'pre_hash'    => $preHash,
-            'hash'        => $hash,
-        ], JSON_UNESCAPED_UNICODE));
+            return new Response(200, ['Content-Type' => 'application/json'], json_encode([
+                'success'     => true,
+                'order_db_id' => $order_id,
+                'pre_hash'    => $preHash,
+                'hash'        => $hash,
+            ], JSON_UNESCAPED_UNICODE));
+        } catch (Exception $e) {
+            Log::error('OrderController@place error: ' . $e->getMessage(), [
+                'user_id' => $userId ?? null,
+                'payload' => $payload ?? null,
+            ]);
+            return Response::ServerError('Failed to place order');
+        }
     }
     /**
      * accept an order.
@@ -242,10 +221,11 @@ class OrderController
             $closeTs       = $data['close_timestamp'];
 
             // 3) Load order and check ownership + status
-            $order = Order::where('id', $orderId)
-                ->where('user_id', $userId)
-                ->where('status', 'open')
-                ->first();
+            // $order = Order::where('id', $orderId)
+            //     ->where('user_id', $userId)
+            //     ->where('status', 'open')
+            //     ->first();
+            $order = $this->oderInterface->findByID($orderId, $userId)->where('status', 'open')->first();
             if (! $order) {
                 return json([
                     'success' => false,
@@ -271,7 +251,10 @@ class OrderController
             $pnl         = $result['pnl'];
             $released    = $result['released'];
             $newBalance  = $result['new_balance'];
-
+            $payload_update_order = [
+                'status' => 'closed',
+                'closed_at' => date('Y-m-d H:i:s', intval($closeTs / 1000)),
+            ];
             // mark order closed
             $order->status     = 'closed';
             $order->closed_at  = date('Y-m-d H:i:s', intval($closeTs / 1000));
