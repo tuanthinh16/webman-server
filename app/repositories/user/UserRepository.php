@@ -35,8 +35,8 @@ class UserRepository implements UserInterface
 
     public function listUsers(int $perPage = 15)
     {
+        $data = ($this->modelClass)::select('id', 'username', 'email')->paginate($perPage);
 
-        $data = ($this->modelClass)::select('id', 'username', 'email')->paginate($perPage)->get();
         $page = (int)(request()->input('page', 1));
         $items = array_slice($data, ($page - 1) * $perPage, $perPage);
 
@@ -78,9 +78,7 @@ class UserRepository implements UserInterface
 
     public function search(string $keyword, int $perPage)
     {
-        // return '1';
-        // return Redis::del('users'); // Clear cache for testing
-
+       
         if (!$this->esClient->indices()->exists(['index' => $this->index])->asBool()) {
             $this->esClient->indices()->create([
                 'index' => $this->index,
