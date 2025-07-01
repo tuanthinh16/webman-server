@@ -13,6 +13,7 @@ use support\Request;
 use support\Response;
 use support\Log;
 use GuzzleHttp\Client;
+        // $validated = UserValidate::validate($data);
 
 class UserController
 {
@@ -54,14 +55,8 @@ class UserController
     public function index(Request $request)
     {
         try {
-
-            // $mailotp = new EmailOtpSender();
-            // $otp = $mailotp->generateOtp(1);
-            // $result = $mailotp->send(1, $otp, 'dotuanthinh37.work@gmail.com');
-            // return $result;
             $perPage = (int)$request->input('per_page', 15);
             $data = $this->userInterface->listUsers($perPage);
-            // Nếu trả về paginator (LengthAwarePaginator)
             if (is_object($data) && method_exists($data, 'items')) {
                 $result = $data->items();
                 $pagination = [
@@ -71,7 +66,6 @@ class UserController
                     'total'        => $data->total(),
                 ];
             } else {
-                // Nếu trả về mảng (không phân trang)
                 $result = $data;
                 $pagination = null;
             }
@@ -124,18 +118,12 @@ class UserController
     public function create(Request $request)
     {
         $data = $request->only(['username', 'password', 'email']);
-        $validated = UserValidate::validate($data);
-        // return json_encode($validated, JSON_UNESCAPED_UNICODE);
-        $error = null;
-        if ($validated['status'] === FALSE) {
-            $error = $validated['message'];
-            Log::error('UserController@register error from validate: ' . json_encode($error));
-            return new Response(
-                400,
-                Response::$HEADERS_JSON,
-                json_encode(['status' => false, 'message' => $error], JSON_UNESCAPED_UNICODE)
-            );
-        }
+            $validated = UserValidate::validate($data);
+            
+             if (!$validated['status']) {
+                return json($validated, 422); 
+            }
+            return 111;
         try {
             $user = $this->userInterface->register($this->prepareRegistration($data, IpAddressHelper::getRequestIp($request)));
             if (!$user) {

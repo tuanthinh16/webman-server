@@ -1,29 +1,46 @@
 <?php
+namespace support;
 
-namespace support\validation;
-
+use Illuminate\Validation\Factory;
 use Illuminate\Translation\ArrayLoader;
 use Illuminate\Translation\Translator;
-use Illuminate\Validation\Factory;
 use Illuminate\Validation\DatabasePresenceVerifier;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use support\Container;
 
-// Khởi tạo Eloquent Capsule (nếu Webman chưa cấu hình thì phải làm thủ công)
-$capsule = new Capsule;
-$capsule->addConnection(config('database.connections.mysql'));
-$capsule->setAsGlobal();
-$capsule->bootEloquent();
+class Validation
+{
+    public static function validateConfig(array $data, String $className)
+    {
+        $translator = new Translator(new ArrayLoader(), 'en');
+        $factory = new Factory($translator);
 
-// Tạo translator cho Validator
-$translator = new Translator(new ArrayLoader(), 'en');
+        $capsule = new Capsule();
+        $capsule->addConnection(config('database.connections.mysql')); 
+        $capsule->setAsGlobal();
+        $capsule->bootEloquent();
 
-// Tạo Validator Factory
-$validatorFactory = new Factory($translator);
+        $presenceVerifier = new DatabasePresenceVerifier($capsule->getDatabaseManager());
+        $factory->setPresenceVerifier($presenceVerifier);
 
-// Gán PresenceVerifier cho các rule như `exists`, `unique`
-$presenceVerifier = new DatabasePresenceVerifier($capsule->getDatabaseManager());
-$validatorFactory->setPresenceVerifier($presenceVerifier);
+        $rules = $className::rules();
+        $messages = $className::messages();
 
-// Đăng vào DI container
-Container::set(Factory::class, $validatorFactory);
+        $validation = $factory->make($data, $rules, $messages);
+
+        if ($validation->fails()) {
+            $errors = $validation->errors()->toArray();
+            $flatErrors = [];
+
+            foreach ($errors as $field => $messages) {
+                $flatErrors[$field] = $messages[0];
+            }
+
+            return [
+                'status' => false,
+                'message' => $flatErrors,
+            ];
+        }
+
+        return ['status' => true, 'message' => $validation->validated()];
+    }
+}

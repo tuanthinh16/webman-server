@@ -23,8 +23,13 @@ use app\middleware\CorsMiddleware;
 use support\Response;
 use Webman\Route;
 
-Route::post('/auth/v1/login', [AuthController::class, 'login'])->middleware(CorsMiddleware::class);
 Route::get('/testview',      [UserController::class, 'testview']);
+
+
+Route::group('/auth/v1', function () {
+    Route::post('/register', [UserController::class, 'create']);
+    Route::post('/confirm', [UserController::class, 'confirmRegister']);
+})->middleware(CorsMiddleware::class);
 
 
 Route::group('/api', function () {

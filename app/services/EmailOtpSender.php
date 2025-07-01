@@ -22,12 +22,15 @@ class EmailOtpSender implements OtpServiceInterface
             throw new \Exception('User not found');
         }
 
+        // Encode subject to UTF-8 with proper mail header
+        $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
+
         // Prepare email content
         $body = view('otp-service', [
             'name' => $user->username,
             'otp' => $otp
         ]);
 
-        return $this->mailService->send($email, $subject, $body);
+        return $this->mailService->send($email, $encodedSubject, $body);
     }
 }
