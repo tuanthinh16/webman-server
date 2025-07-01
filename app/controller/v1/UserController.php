@@ -186,8 +186,9 @@ class UserController
     public function reSendOtp(Request $request)
     {
         try {
-            $email = $request->get('email');
-            $user = $this->userInterface->findByEmail($email)->where('status', false);
+            $email = $request->input('email');
+            $user = $this->userInterface->findByEmailWhereInactive($email);
+            return json($user);
             if (!$user) {
                 return new Response(404, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => 'Not found user need active with email ' . $email]));
             }

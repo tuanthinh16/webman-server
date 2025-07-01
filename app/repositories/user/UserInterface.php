@@ -18,6 +18,12 @@ interface UserInterface
      */
     public function findByEmail(string $email);
     /**
+     * Undocumented function
+     *
+     * @param string $email
+     */
+    public function findByEmailWhereInactive(string $email);
+    /**
      * find a user by their ID.
      *
      * @param integer $id

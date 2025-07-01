@@ -32,6 +32,10 @@ class UserRepository implements UserInterface
     {
         return ($this->modelClass)::where('email', $email)->first();
     }
+    public function findByEmailWhereInactive(string $email)
+    {
+        return ($this->modelClass)::where('email', $email)->where('status', 0)->first();
+    }
     public function listUsers(int $perPage = 15)
     {
         $page = (int)request()->input('page', 1);

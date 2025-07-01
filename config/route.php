@@ -30,7 +30,7 @@ Route::group('/auth/v1', function () {
     Route::post('/register', [UserController::class, 'create']);
     Route::post('/confirm', [UserController::class, 'confirmRegister']);
     Route::post('/login', [AuthController::class, 'login']);
-    Route::get('/re-send-otp', [UserController::class, 'reSendOtp']);
+    Route::post('/re-send-otp', [UserController::class, 'reSendOtp']);
 })->middleware(CorsMiddleware::class);
 
 Route::post('/test-mail', [\app\controller\v1\MaillerController::class, 'index']);
