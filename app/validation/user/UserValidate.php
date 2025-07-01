@@ -2,43 +2,30 @@
 
 namespace app\validation\user;
 
-use Illuminate\Validation\Factory;
-use Illuminate\Translation\ArrayLoader;
-use Illuminate\Translation\Translator;
-use Illuminate\Foundation\Http\FormRequest;
+use support\Validation;
 
 class UserValidate
 {
-    public static function validate(array $data)
+    public static function rules(): array
     {
-        $translator = new Translator(new ArrayLoader(), 'en');
-        $factory = new Factory($translator);
-        $rules = [
+        return [
             'username' => 'required|string|max:50',
-            'email'    => 'required|email|max:255',
+            'password' => 'required|string|min:1',
+            'email'    => 'required|email|unique:wa_users,email|max:255',
         ];
+    }
 
-        $messages = [
+    public static function messages(): array
+    {
+        return [
             'username.required' => 'Username là bắt buộc',
             'email.required'    => 'Email là bắt buộc',
         ];
+    }
 
-        $validation = $factory->make($data, $rules, $messages);
-
-        if ($validation->fails()) {
-            $errors = $validation->errors()->toArray();
-            $flatErrors = [];
-
-            foreach ($errors as $field => $messages) {
-                $flatErrors[$field] = $messages[0];
-            }
-
-            return  [
-                'status' => false,
-                'message' => $flatErrors,
-            ];
-        }
-
-        return ['status' => true, 'message' => $validation->validated()];
+    // do not delete please :()
+    public static function validate(array $data): array
+    {
+        return Validation::validateConfig($data, self::class);
     }
 }

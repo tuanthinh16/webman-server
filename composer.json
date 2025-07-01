@@ -48,7 +48,8 @@
     "illuminate/translation": "^9.52",
     "topthink/think-validate": "2.0",
     "webman/stomp": "^1.1",
-    "phpmailer/phpmailer": "^6.10"
+    "phpmailer/phpmailer": "^6.10",
+    "webman/console": "^2.1"
   },
   "suggest": {
     "ext-event": "For better performance. "
