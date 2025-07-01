@@ -14,7 +14,7 @@ use support\Request;
 use support\Response;
 use support\Log;
 use GuzzleHttp\Client;
-        // $validated = UserValidate::validate($data);
+// $validated = UserValidate::validate($data);
 
 class UserController
 {
@@ -119,12 +119,12 @@ class UserController
     public function create(Request $request)
     {
         $data = $request->only(['username', 'password', 'email']);
-            $validated = UserValidate::validate($data);
-            
-             if (!$validated['status']) {
-                return json($validated, 422); 
-            }
-            return 111;
+        $validated = UserValidate::validate($data);
+
+        if (!$validated['status']) {
+            return json($validated, 422);
+        }
+
         try {
             $user = $this->userInterface->register(PrepareDataUserHelper::prepareRegistration($data, IpAddressHelper::getRequestIp($request)));
             if (!$user) {
