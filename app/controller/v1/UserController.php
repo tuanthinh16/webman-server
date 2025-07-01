@@ -9,6 +9,7 @@ use app\repositories\otp\OtpRepository;
 use app\repositories\user\UserInterface;
 use app\services\EmailOtpSender;
 use app\services\MailService;
+use app\services\otp\OtpService;
 use app\validation\user\UserValidate;
 use support\Request;
 use support\Response;
@@ -132,35 +133,8 @@ class UserController
                 Log::error('UserController@register error: ' . $error);
                 return new Response(500, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => $error], JSON_UNESCAPED_UNICODE));
             }
-
-
-            $createdAt = date('Y-m-d H:i:s');
-            $otpCode   = OtpCodeHelper::generateOtp(6);
-
-            $secret    = env('JWT_SECRET', 'some_random_secret');
-            $hash      = hash_hmac(
-                'sha256',
-                "{$user->id}|{$otpCode}|{$createdAt}",
-                $secret
-            );
-
-            $otp = $this->otpRepository->create([
-                'user_id'    => $user->id,
-                'otp_code'   => $otpCode,
-                'created_at' => $createdAt,
-                'valid_time' => date('Y-m-d H:i:s', strtotime('+10 minutes')),
-                'is_used'    => 0,
-                'hash'       => $hash,
-                'type'       => 'register',
-            ]);
-            if (!$otp) {
-                $error = 'OTP creation failed';
-                Log::error('UserController@register error: ' . $error);
-                return Response::ServerError();
-            }
-            // Send OTP to user email
-            $mailService = new EmailOtpSender();
-            $result = $mailService->send($user->id, $otpCode, $user->email, 'Xác nhận đăng ký tài khoản');
+            $otpService = new OtpService();
+            $result = $otpService->sendOtpRegister($user->id, $user->email);
             if (!$result) {
                 $error = 'Failed to send OTP email';
                 Log::error('UserController@register error: ' . $error);
@@ -169,6 +143,22 @@ class UserController
             return new Response(201, Response::$HEADERS_JSON, json_encode(['status' => true, 'user_id' => $user->id, 'send-otp' => $result, 'email' => $user->email], JSON_UNESCAPED_UNICODE));
         } catch (\Throwable $e) {
             Log::error('UserController@register error: ' . $e->getMessage());
+            return Response::ServerError($error ?? 'Server error');
+        }
+    }
+    public function reSendOtp(Request $request)
+    {
+        try {
+            $email = $request->get('email');
+            $user = $this->userInterface->findByEmail($email);
+            if (!$user) {
+                return new Response(404, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => 'Invalid email']));
+            }
+            $otpService = new OtpService();
+            $result = $otpService->sendOtpRegister($user->id, $email);
+            return new Response(200, Response::$HEADERS_JSON, json_encode(['status' => true, 'message' => $result]));
+        } catch (\Throwable $e) {
+            Log::error('UserController@reSendOtp error: ' . $e->getMessage());
             return Response::ServerError($error ?? 'Server error');
         }
     }
@@ -186,36 +176,11 @@ class UserController
             }
 
             $otp = $this->otpRepository->findByUserIdAndOtp($data['user_id'], $data['otp'], 'register');
-            // Validate user ID
-            if (!$otp) {
+            if (!$otp || strtotime($otp->valid_time) < time() || $otp->otp_code !== $data['otp']) {
                 return new Response(
                     404,
                     Response::$HEADERS_JSON,
-                    json_encode(['message' => 'OTP not found'], JSON_UNESCAPED_UNICODE)
-                );
-            }
-            // Check if OTP is already used
-            if ($otp->is_used) {
-                return new Response(
-                    403,
-                    Response::$HEADERS_JSON,
-                    json_encode(['message' => 'OTP already used'], JSON_UNESCAPED_UNICODE)
-                );
-            }
-            // Check if OTP is expired
-            if (strtotime($otp->valid_time) < time()) {
-                return new Response(
-                    410,
-                    Response::$HEADERS_JSON,
-                    json_encode(['message' => 'OTP expired'], JSON_UNESCAPED_UNICODE)
-                );
-            }
-            //Verify OTP code
-            if ($otp->otp_code !== $data['otp']) {
-                return new Response(
-                    403,
-                    Response::$HEADERS_JSON,
-                    json_encode(['message' => 'Invalid OTP code'], JSON_UNESCAPED_UNICODE)
+                    json_encode(['message' => 'Invalid OTP'], JSON_UNESCAPED_UNICODE)
                 );
             }
             // Verify OTP hash

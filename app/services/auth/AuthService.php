@@ -8,6 +8,7 @@ use App\Model\User;
 use App\Model\UserIdentity;
 use app\repositories\user\UserRepository;
 use app\repositories\userIdentity\UserIdentityRepository;
+use app\services\otp\OtpService;
 use app\validation\user\UserValidate;
 use support\Log;
 use support\Response;
@@ -35,7 +36,7 @@ class AuthService
         $provider = $data['provider'] ?? 'local';
 
         switch ($provider) {
-            case 'local':
+            case 'credentials':
                 return $this->localLogin($data);
             case 'google':
             case 'facebook':
@@ -52,12 +53,14 @@ class AuthService
             $password = $data['password'];
 
             $user = $this->userRepository->findByUsername($username);
+
             if (! $user || ! password_verify($password, $user->password)) {
                 return new Response(400, Response::$HEADERS_JSON, json_encode([
                     'status' => false,
                     'message' => 'Invalid username or password'
                 ], JSON_UNESCAPED_UNICODE));
             }
+            // return $user;
             $now = date('Y-m-d H:i:s');
             $payload = [
                 'last_time' => $now,
@@ -76,7 +79,7 @@ class AuthService
                 return new Response(200, Response::$HEADERS_JSON, json_encode([
                     'status' => true,
                     'token'   => $jwt,
-                    'user_id' => $user->id,
+                    'username' => $user->username,
                 ], JSON_UNESCAPED_UNICODE));
             }
             return new Response(500, Response::$HEADERS_JSON, json_encode([
@@ -110,14 +113,6 @@ class AuthService
                 'expires_at'    => isset($data['expires_in']) ? date('Y-m-d H:i:s', time() + $data['expires_in']) : null,
                 'extra'         => json_encode($data),
             ]);
-            // return new Response(400, [], json_encode([
-            //     'provider'          => $provider,
-            //     'provider_user_id'  => $data['provider_user_id'] ?? null,
-            //     'email'             => $data['email'] ?? null,
-            //     'username'              => $data['username'] ?? null,
-            //     'access_token'      => $data['access_token'] ?? null,
-            //     'refresh_token'     => $data['refresh_token'] ?? null,
-            // ]));
             if (!$identity->user_id) {
                 // nếu đăng nhập lần đầu
                 $user = $this->userRepository->findByEmail($data['email']);
@@ -135,9 +130,13 @@ class AuthService
                     if (!$validated['status']) {
                         return new Response(400, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => $validated['message']]));
                     }
+                    //register
                     $prepared_data = PrepareDataUserHelper::prepareRegistration($data_user, $this->ip);
                     $user = $this->userRepository->register($prepared_data);
                     $identity->user_id = $user->id;
+                    //send otp
+                    $otpService = new OtpService();
+                    $otpService->sendOtpRegister($user->id, $user->email);
                 }
                 try {
                     $this->userIdentityRepository->update($identity->id, [
