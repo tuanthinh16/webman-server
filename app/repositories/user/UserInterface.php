@@ -12,6 +12,12 @@ interface UserInterface
      */
     public function findByUsername(string $username);
     /**
+     * Find a user by their email address.
+     *
+     * @param string $email
+     */
+    public function findByEmail(string $email);
+    /**
      * find a user by their ID.
      *
      * @param integer $id

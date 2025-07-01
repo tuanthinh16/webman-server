@@ -15,13 +15,11 @@ class UserValidate
         $factory = new Factory($translator);
         $rules = [
             'username' => 'required|string|max:50',
-            'password' => 'required|string|min:1',
             'email'    => 'required|email|max:255',
         ];
 
         $messages = [
             'username.required' => 'Username là bắt buộc',
-            'password.required' => 'Password là bắt buộc',
             'email.required'    => 'Email là bắt buộc',
         ];
 

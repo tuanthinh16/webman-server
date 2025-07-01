@@ -13,7 +13,7 @@ class OtpCodeHelper
     public static function generateOtp(int $length = 6): string
     {
         // Bộ ký tự: chữ hoa, chữ thường, số
-        $chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $max   = strlen($chars) - 1;
         $otp   = '';
 

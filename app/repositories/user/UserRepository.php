@@ -28,7 +28,10 @@ class UserRepository implements UserInterface
     {
         return ($this->modelClass)::where('username', $username)->first();
     }
-
+    public function findByEmail(string $email)
+    {
+        return ($this->modelClass)::where('email', $email)->first();
+    }
     public function listUsers(int $perPage = 15)
     {
         $page = (int)request()->input('page', 1);

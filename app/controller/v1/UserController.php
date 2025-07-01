@@ -4,6 +4,7 @@ namespace app\controller\v1;
 
 use app\helper\IpAddressHelper;
 use app\helper\OtpCodeHelper;
+use app\helper\PrepareDataUserHelper;
 use app\repositories\otp\OtpRepository;
 use app\repositories\user\UserInterface;
 use app\services\EmailOtpSender;
@@ -137,7 +138,7 @@ class UserController
             );
         }
         try {
-            $user = $this->userInterface->register($this->prepareRegistration($data, IpAddressHelper::getRequestIp($request)));
+            $user = $this->userInterface->register(PrepareDataUserHelper::prepareRegistration($data, IpAddressHelper::getRequestIp($request)));
             if (!$user) {
                 $error = 'User registration failed';
                 Log::error('UserController@register error: ' . $error);
@@ -295,18 +296,5 @@ class UserController
             Log::error('UserController@changePassword error: ' . $e->getMessage());
             return Response::ServerError();
         }
-    }
-
-    /** Helpers **/
-    protected function prepareRegistration(array $data, string $ip): array
-    {
-        $now = date('Y-m-d H:i:s');
-        return array_merge($data, [
-            'password'  => password_hash($data['password'], PASSWORD_BCRYPT),
-            'join_time' => $now,
-            'join_ip'   => $ip,
-            'status'    => 0,
-            'nickname' => $data['username'] ?? ''
-        ]);
     }
 }

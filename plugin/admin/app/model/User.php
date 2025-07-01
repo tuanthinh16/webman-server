@@ -42,8 +42,4 @@ class User extends Base
      * @var string
      */
     protected $primaryKey = 'id';
-    
-    
-    
-    
 }

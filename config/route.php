@@ -29,8 +29,10 @@ Route::get('/testview',      [UserController::class, 'testview']);
 Route::group('/auth/v1', function () {
     Route::post('/register', [UserController::class, 'create']);
     Route::post('/confirm', [UserController::class, 'confirmRegister']);
+    Route::post('/login', [AuthController::class, 'login']);
 })->middleware(CorsMiddleware::class);
 
+Route::post('/test-mail', [\app\controller\v1\MaillerController::class, 'index']);
 
 Route::group('/api', function () {
     Route::group('/v1', function () {

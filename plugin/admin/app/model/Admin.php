@@ -25,7 +25,7 @@ class Admin extends Base
      *
      * @var string
      */
-    protected $table = 'wa_admins';
+    protected $table = 'admins';
 
     /**
      * The primary key associated with the table.
@@ -33,8 +33,4 @@ class Admin extends Base
      * @var string
      */
     protected $primaryKey = 'id';
-    
-    
-    
-    
 }

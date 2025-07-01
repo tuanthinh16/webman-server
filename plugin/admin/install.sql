@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS `wa_admin_roles` (
+CREATE TABLE IF NOT EXISTS `admin_roles` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
   `role_id` int(11) NOT NULL COMMENT 'Role ID',
   `admin_id` int(11) NOT NULL COMMENT 'Admin ID',
@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS `wa_admin_roles` (
   UNIQUE KEY `role_admin_id` (`role_id`,`admin_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Administrator–Role mapping table';
 
-CREATE TABLE IF NOT EXISTS `wa_admins` (
+CREATE TABLE IF NOT EXISTS `admins` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',
   `username` varchar(32) NOT NULL COMMENT 'Username',
   `nickname` varchar(40) NOT NULL COMMENT 'Nickname',
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS `wa_admins` (
   UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Administrators table';
 
-CREATE TABLE IF NOT EXISTS `wa_options` (
+CREATE TABLE IF NOT EXISTS `options` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL COMMENT 'Key',
   `value` longtext NOT NULL COMMENT 'Value',
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS `wa_options` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Options table';
 
-CREATE TABLE IF NOT EXISTS `wa_roles` (
+CREATE TABLE IF NOT EXISTS `roles` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
   `name` varchar(80) NOT NULL COMMENT 'Role name',
   `rules` text COMMENT 'Permissions',
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS `wa_roles` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Roles table';
 
-CREATE TABLE IF NOT EXISTS `wa_rules` (
+CREATE TABLE IF NOT EXISTS `rules` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
   `title` varchar(255) NOT NULL COMMENT 'Title',
   `icon` varchar(255) DEFAULT NULL COMMENT 'Icon',
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS `wa_rules` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Permissions rules table';
 
-CREATE TABLE IF NOT EXISTS `wa_uploads` (
+CREATE TABLE IF NOT EXISTS `uploads` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
   `name` varchar(128) NOT NULL COMMENT 'File name',
   `url` varchar(255) NOT NULL COMMENT 'File URL',
@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS `wa_users` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
   `username` varchar(32) NOT NULL COMMENT 'Username',
   `nickname` varchar(40) NOT NULL COMMENT 'Nickname',
-  `password` varchar(255) NOT NULL COMMENT 'Password',
+  `password` varchar(255) COMMENT 'Password',
   `sex` enum('0','1') NOT NULL DEFAULT '1' COMMENT 'Gender',
   `avatar` varchar(255) DEFAULT NULL COMMENT 'Avatar',
   `email` varchar(128) DEFAULT NULL COMMENT 'Email',
@@ -106,8 +106,8 @@ CREATE TABLE IF NOT EXISTS `wa_users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Users table';
 
 -- Insert data into wa_options
-LOCK TABLES `wa_options` WRITE;
-INSERT INTO `wa_options` (`id`, `name`, `value`, `created_at`, `updated_at`)
+LOCK TABLES `options` WRITE;
+INSERT INTO `options` (`id`, `name`, `value`, `created_at`, `updated_at`)
 VALUES
   (1, 'system_config',
     '{"logo":{"title":"Webman Admin","image":"\/app\/admin\/admin\/images\/logo.png"},"menu":{"data":"\/app\/admin\/rule\/get","method":"GET","accordion":true,"collapse":false,"control":false,"controlWidth":500,"select":"0","async":true},"tab":{"enable":true,"keepState":true,"preload":false,"session":true,"max":"30","index":{"id":"0","href":"\/app\/admin\/index\/dashboard","title":"Dashboard"}},"theme":{"defaultColor":"2","defaultMenu":"light-theme","defaultHeader":"light-theme","allowCustom":true,"banner":false},"colors":[{"id":"1","color":"#36b368","second":"#f0f9eb"},{"id":"2","color":"#2d8cf0","second":"#ecf5ff"},{"id":"3","color":"#f6ad55","second":"#fdf6ec"},{"id":"4","color":"#f56c6c","second":"#fef0f0"},{"id":"5","color":"#3963bc","second":"#ecf5ff"}],"other":{"keepLoad":"500","autoHead":false,"footer":false},"header":{"message":false}}',
@@ -122,8 +122,8 @@ VALUES
 UNLOCK TABLES;
 
 -- Insert data into wa_roles
-LOCK TABLES `wa_roles` WRITE;
-INSERT INTO `wa_roles` (`id`, `name`, `rules`, `created_at`, `updated_at`, `pid`)
+LOCK TABLES `roles` WRITE;
+INSERT INTO `roles` (`id`, `name`, `rules`, `created_at`, `updated_at`, `pid`)
 VALUES
   (1, 'Super Administrator', '*', '2022-08-13 16:15:01', '2022-12-23 12:05:07', NULL);
 UNLOCK TABLES;

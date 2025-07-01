@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Thư mời nhận việc</title>
+  <title>OTP</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
     /* Reset và cơ bản */
@@ -19,7 +19,8 @@
       display: flex;
       text-align: center ;
       margin: auto;
-      min-width: '350px';
+      min-width: 350px;
+      max-height: 500px;
       align-items: center;
       justify-content: center;
       padding: 16px;
@@ -65,8 +66,8 @@
       margin-bottom: 8px;
     }
     .subtitle-bar {
-      width: 80px;
       height: 4px;
+      margin: 2;
       background-color: #E6F4EA;
       border-radius: 2px;
       margin: 0 auto;
@@ -85,7 +86,9 @@
       display: inline-block;
       background-color: #1C6334;
       color: #fff;
-      font-weight: 500;
+      font-size: xx-large;
+
+      font-weight: bold;
       padding: 12px 32px;
       border-radius: 8px;
       text-decoration: none;
@@ -121,15 +124,15 @@
             </svg>
           </div>
           <h1 class="title">OTP Verify</h1>
-          <div class="subtitle-bar">Xin chào <?= htmlspecialchars($name ?? '') ?></div>
+          <div class="subtitle-bar">Xin chào <b><?= htmlspecialchars($name ?? '') ?>tuanthinh1111111</b></div>
         </div>
 
         <div class="highlight-box">
-          <p>Hãy dùng mã xác thực dưới đây để hoàn tất quá trình tạo tài khoản của bạn <strong>Hiệu lực trong 2 phút</strong></p>
+          <p>Hãy dùng mã xác thực dưới đây để hoàn tất quá trình tạo tài khoản của bạn <strong>Hiệu lực trong 10 phút</strong></p>
         </div>
 
         <div class="text-center" style="margin-bottom: 24px;">
-          <span class="otp-button"><?= htmlspecialchars($otp ?? '') ?></span>
+          <span class="otp-button"><?= htmlspecialchars($otp ?? '') ?>ABcs</span>
         </div>
 
         <div class="footer">
