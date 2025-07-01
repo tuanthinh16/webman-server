@@ -3,149 +3,368 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Thư mời nhận việc</title>
+  <title>Thư mời nhận việc chính thức</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
-    /* Reset cơ bản */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* Reset CSS */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+    
     body {
-      font-family: 'Quicksand', sans-serif;
-      background-color: #f5f5f5;
-      color: #333;
+      background-color: #f8fafc;
+      color: #334155;
       line-height: 1.6;
     }
-    .container {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
+    
+    .email-container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 24px;
     }
-    .card {
-      background-color: #fff;
-      width: 100%;
-      max-width: 600px;
-      border: 1px solid #e5e7eb;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-      transition: box-shadow 0.3s ease;
+    
+    .email-card {
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
       overflow: hidden;
+      border: 1px solid #e2e8f0;
     }
-    .card:hover { box-shadow: 0 15px 30px -5px rgba(0,0,0,0.15); }
-    .card-content { padding: 32px; }
-    .header { text-align: center; margin-bottom: 24px; }
-    .icon-circle {
-      width: 64px; height: 64px;
-      background-color: #e6f4ea;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 16px;
+    
+    .header {
+      background-color: #1e40af;
+      color: white;
+      padding: 32px;
+      text-align: center;
+      position: relative;
     }
-    .icon-circle svg { width: 32px; height: 32px; color: #16a34a; }
-    .title {
-      font-size: 1.75rem;
-      font-weight: 600;
-      color: #16a34a;
+    
+    .header:after {
+      content: "";
+      position: absolute;
+      bottom: -12px;
+      left: 0;
+      right: 0;
+      height: 24px;
+      background-color: #ffffff;
+      border-radius: 24px 24px 0 0;
+    }
+    
+    .logo {
+      max-width: 120px;
+      margin-bottom: 16px;
+    }
+    
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
       margin-bottom: 8px;
     }
-    .underline { width: 80px; height: 4px; background-color: #d1fae5; margin: 0 auto; border-radius: 2px; }
-    .greeting { margin-bottom: 16px; color: #374151; }
-    .highlight {
-      background-color: #ecfdf5;
-      border-left: 4px solid #4ade80;
-      padding: 16px;
-      border-radius: 8px;
+    
+    .header p {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+    
+    .content {
+      padding: 32px;
+    }
+    
+    .greeting {
+      font-size: 16px;
       margin-bottom: 24px;
-      color: #374151;
+      line-height: 1.7;
     }
-    .details { margin-bottom: 24px; }
-    .detail-item { display: flex; align-items: flex-start; margin-bottom: 16px; }
-    .detail-icon {
-      width: 24px; height: 24px;
-      flex-shrink: 0;
-      margin-right: 12px;
-      color: #10b981;
+    
+    .greeting strong {
+      color: #1e40af;
+      font-weight: 600;
     }
-    .detail-text span { display: block; }
-    .detail-text .label { font-size: 0.875rem; color: #6b7280; }
-    .detail-text .value { font-weight: 500; color: #111827; }
-    .confirm-btn {
-      display: inline-block;
-      background-color: #16a34a;
-      color: #fff;
-      text-decoration: none;
-      font-weight: 500;
-      padding: 12px 32px;
+    
+    .offer-details {
+      background-color: #f8fafc;
       border-radius: 8px;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      cursor: pointer;
+      padding: 24px;
+      margin-bottom: 32px;
+      border-left: 4px solid #1e40af;
     }
-    .confirm-btn:hover {
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1e40af;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .section-title svg {
+      margin-right: 8px;
+    }
+    
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    .detail-item {
+      margin-bottom: 16px;
+    }
+    
+    .detail-label {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 4px;
+      display: block;
+    }
+    
+    .detail-value {
+      font-size: 16px;
+      font-weight: 500;
+      color: #0f172a;
+    }
+    
+    .salary-highlight {
+      background-color: #e0e7ff;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin: 16px 0;
+      font-weight: 600;
+      color: #1e40af;
+    }
+    
+    .benefits-list {
+      list-style-type: none;
+      margin-top: 12px;
+    }
+    
+    .benefits-list li {
+      padding: 8px 0;
+      display: flex;
+      align-items: flex-start;
+    }
+    
+    .benefits-list li:before {
+      content: "✓";
+      color: #10b981;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    
+    .action-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-weight: 500;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-primary {
+      background-color: #1e40af;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background-color: #1e3a8a;
       transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(72,187,120,0.4);
     }
+    
+    .btn-secondary {
+      background-color: #e2e8f0;
+      color: #334155;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #cbd5e1;
+    }
+    
     .footer {
-      border-top: 1px solid #e5e7eb;
-      padding-top: 24px;
-      font-size: 0.875rem;
-      color: #6b7280;
+      text-align: center;
+      padding: 24px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 14px;
+      color: #64748b;
     }
-    .footer .company { display: block; font-weight: 600; color: #16a34a; margin-top: 4px; }
+    
+    .company-name {
+      font-weight: 600;
+      color: #1e40af;
+      margin-top: 8px;
+      display: block;
+    }
+    
+    .signature {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px dashed #e2e8f0;
+    }
+    
+    .signature p {
+      margin-bottom: 4px;
+    }
+    
+    .signature-name {
+      font-weight: 600;
+      color: #1e40af;
+    }
+    
+    @media (max-width: 640px) {
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .action-buttons {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card">
-      <div class="card-content">
-        <div class="header">
-          <div class="icon-circle">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  <div class="email-container">
+    <div class="email-card">
+      <div class="header">
+        <!-- Có thể thay bằng logo công ty -->
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2Z" fill="white"/>
+          <path d="M16.707 10.707L11.707 15.707C11.512 15.902 11.256 16 11 16C10.744 16 10.488 15.902 10.293 15.707L7.293 12.707C6.902 12.316 6.902 11.684 7.293 11.293C7.684 10.902 8.316 10.902 8.707 11.293L11 13.586L15.293 9.293C15.684 8.902 16.316 8.902 16.707 9.293C17.098 9.684 17.098 10.316 16.707 10.707Z" fill="#1e40af"/>
+        </svg>
+        <h1>THƯ MỜI NHẬN VIỆC</h1>
+        <p><?= htmlspecialchars($company ?? 'Công ty ABC') ?></p>
+      </div>
+      
+      <div class="content">
+        <div class="greeting">
+          <p>Kính gửi: <strong><?= htmlspecialchars($name ?? 'Anh/Chị') ?></strong>,</p>
+          <p>Thay mặt Ban lãnh đạo <strong><?= htmlspecialchars($company ?? 'Công ty ABC') ?></strong>, chúng tôi trân trọng gửi đến Anh/Chị thư mời nhận việc chính thức cho vị trí <strong><?= htmlspecialchars($position ?? 'Nhân viên') ?></strong>.</p>
+        </div>
+        
+        <div class="offer-details">
+          <div class="section-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 8V12L15 15" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
+            THÔNG TIN CÔNG VIỆC
           </div>
-          <h1 class="title">Thư mời nhận việc</h1>
-          <div class="underline"></div>
-        </div>
-
-        <p class="greeting">
-          Kính gửi <strong><?= htmlspecialchars($name ?? 'Ứng viên') ?></strong>,
-        </p>
-
-        <div class="highlight">
-          Chúng tôi rất vui mừng thông báo bạn đã vượt qua các vòng tuyển chọn và được mời nhận vị trí <strong><?= htmlspecialchars($position ?? 'Nhân viên') ?></strong> tại công ty <strong><?= htmlspecialchars($company ?? 'ABC Corp') ?></strong>.
-        </div>
-
-        <div class="details">
-          <div class="detail-item">
-            <svg xmlns="http://www.w3.org/2000/svg" class="detail-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <div class="detail-text">
-              <span class="label">Thời gian nhận việc</span>
-              <span class="value"><?= htmlspecialchars($start_time ?? 'dd/mm/yyyy') ?></span>
+          
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Vị trí công việc</span>
+              <span class="detail-value"><?= htmlspecialchars($position ?? 'Nhân viên') ?></span>
+            </div>
+            
+            <div class="detail-item">
+              <span class="detail-label">Phòng/Ban</span>
+              <span class="detail-value"><?= htmlspecialchars($department ?? 'Phòng Nhân sự') ?></span>
+            </div>
+            
+            <div class="detail-item">
+              <span class="detail-label">Ngày bắt đầu</span>
+              <span class="detail-value"><?= htmlspecialchars($start_date ?? '01/01/2023') ?></span>
+            </div>
+            
+            <div class="detail-item">
+              <span class="detail-label">Thời gian thử việc</span>
+              <span class="detail-value"><?= htmlspecialchars($probation_period ?? '2 tháng') ?></span>
+            </div>
+            
+            <div class="detail-item">
+              <span class="detail-label">Địa điểm làm việc</span>
+              <span class="detail-value"><?= htmlspecialchars($work_location ?? 'Trụ sở chính') ?></span>
+            </div>
+            
+            <div class="detail-item">
+              <span class="detail-label">Báo cáo cho</span>
+              <span class="detail-value"><?= htmlspecialchars($report_to ?? 'Trưởng phòng') ?></span>
             </div>
           </div>
-
-          <div class="detail-item">
-            <svg xmlns="http://www.w3.org/2000/svg" class="detail-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          
+          <div class="section-title" style="margin-top: 24px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 1V23" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M17 5H9.5C8.57174 5 7.6815 5.36875 7.02513 6.02513C6.36875 6.6815 6 7.57174 6 8.5C6 9.42826 6.36875 10.3185 7.02513 10.9749C7.6815 11.6313 8.57174 12 9.5 12H14.5C15.4283 12 16.3185 12.3687 16.9749 13.0251C17.6313 13.6815 18 14.5717 18 15.5C18 16.4283 17.6313 17.3185 16.9749 17.9749C16.3185 18.6313 15.4283 19 14.5 19H6" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <div class="detail-text">
-              <span class="label">Địa điểm làm việc</span>
-              <span class="value"><?= htmlspecialchars($workplace ?? 'Văn phòng công ty') ?></span>
+            CHẾ ĐỘ LƯƠNG & PHÚC LỢI
+          </div>
+          
+          <div class="salary-highlight">
+            Mức lương: <?= htmlspecialchars($salary ?? 'Thỏa thuận') ?> 
+            <?= isset($salary_type) ? '(' . htmlspecialchars($salary_type) . ')' : '' ?>
+          </div>
+          
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Hình thức trả lương</span>
+              <span class="detail-value"><?= htmlspecialchars($payment_method ?? 'Chuyển khoản') ?></span>
+            </div>
+            
+            <div class="detail-item">
+              <span class="detail-label">Ngày trả lương</span>
+              <span class="detail-value"><?= htmlspecialchars($pay_date ?? 'Ngày 05 hàng tháng') ?></span>
             </div>
           </div>
+          
+          <div style="margin-top: 16px;">
+            <span class="detail-label">Phúc lợi</span>
+            <ul class="benefits-list">
+              <?php if(isset($benefits) && is_array($benefits)): ?>
+                <?php foreach($benefits as $benefit): ?>
+                  <li><?= htmlspecialchars($benefit) ?></li>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <li>Bảo hiểm theo quy định</li>
+                <li>Khám sức khỏe định kỳ</li>
+                <li>Du lịch hàng năm</li>
+                <li>Đào tạo nâng cao</li>
+                <li>Chế độ nghỉ phép</li>
+              <?php endif; ?>
+            </ul>
+          </div>
         </div>
-
-        <div class="text-center">
-          <a href="<?= htmlspecialchars($confirm_url ?? '#') ?>" class="confirm-btn">Xác nhận nhận việc</a>
+        
+        <div class="section-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 7V3M16 7V3M7 11H17M5 21H19C20.1046 21 21 20.1046 21 19V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V19C3 20.1046 3.89543 21 5 21Z" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          THỜI HẠN TRẢ LỜI
         </div>
-
-        <div class="footer">
-          Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi qua email hoặc số điện thoại trong chữ ký dưới đây.
-          <span class="company"><?= htmlspecialchars($company ?? 'ABC Corp') ?></span>
+        
+        <p style="margin-bottom: 16px;">Vui lòng xác nhận nhận việc trước ngày <strong><?= htmlspecialchars($response_deadline ?? '31/12/2022') ?></strong> bằng cách nhấn vào nút bên dưới hoặc liên hệ trực tiếp với chúng tôi nếu có bất kỳ thắc mắc nào.</p>
+        
+        <div class="action-buttons">
+          <a href="<?= htmlspecialchars($accept_url ?? '#') ?>" class="btn btn-primary" style="color: white;">XÁC NHẬN NHẬN VIỆC</a>
+          <a href="<?= htmlspecialchars($contact_url ?? '#') ?>" class="btn btn-secondary" style="margin-left: 10px;">LIÊN HỆ HR</a>
         </div>
+        
+        <div class="signature">
+          <p>Trân trọng,</p>
+          <p class="signature-name"><?= htmlspecialchars($hr_name ?? 'Nguyễn Văn A') ?></p>
+          <p><?= htmlspecialchars($hr_position ?? 'Trưởng phòng Nhân sự') ?></p>
+          <p>Email: <?= htmlspecialchars($hr_email ?? 'hr@company.com') ?></p>
+          <p>Điện thoại: <?= htmlspecialchars($hr_phone ?? '0900 123 456') ?></p>
+        </div>
+      </div>
+      
+      <div class="footer">
+        <p>© <?= date('Y') ?> <?= htmlspecialchars($company ?? 'Công ty ABC') ?>. All rights reserved.</p>
+        <span class="company-name"><?= htmlspecialchars($company ?? 'Công ty ABC') ?></span>
+        <p><?= htmlspecialchars($company_address ?? '123 Đường ABC, Quận 1, TP.HCM') ?></p>
       </div>
     </div>
   </div>

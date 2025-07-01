@@ -188,7 +188,7 @@ class UserController
         try {
             $email = $request->input('email');
             $user = $this->userInterface->findByEmailWhereInactive($email);
-            return json($user);
+            // return json($user);
             if (!$user) {
                 return new Response(404, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => 'Not found user need active with email ' . $email]));
             }
