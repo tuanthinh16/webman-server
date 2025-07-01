@@ -6,15 +6,21 @@ use app\helper\IpAddressHelper;
 use app\services\auth\AuthService;
 use support\Request;
 
-
 class AuthController
 {
+    private AuthService $authService;
+
+    public function __construct(AuthService $authService)
+    {
+        $this->authService = $authService;
+    }
+
     public function login(Request $request)
     {
-        $data     = $request->only(['username', 'password', 'provider', 'email', 'access_token', 'refresh_token', 'provider_user_id', 'expires_in', 'name']);
-        $ip       = IpAddressHelper::getRequestIp($request);
-        $auth = new AuthService();
-        $response = $auth->handle($data, $ip);
-        return $response;
+        $data = $request->json();
+        // return $data;
+        $ip = IpAddressHelper::getRequestIp($request);
+
+        return $this->authService->handle($data, $ip);
     }
 }

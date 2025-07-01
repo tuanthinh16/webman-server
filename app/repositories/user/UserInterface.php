@@ -62,4 +62,11 @@ interface UserInterface
      * 
      */
     public function register(array $data);
+    /**
+     * Update last login
+     *
+     * @param integer $userId
+     * @param array $payload
+     */
+    public function updateLastLogin(int $userId, array $payload);
 }

@@ -11,8 +11,6 @@ class CorsMiddleware implements MiddlewareInterface
 {
     public function process(Request $request, callable $next): Response
     {
-        Log::info('loadding middleware cors');
-        // 1) If this is a preflight request, reply immediately
         if (strtoupper($request->method()) === 'OPTIONS') {
             return new Response(
                 '',

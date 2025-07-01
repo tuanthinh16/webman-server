@@ -26,9 +26,7 @@ class OrderController
      */
     public function getByUserID(Request $request)
     {
-        if (!isset($request->user['id'])) {
-            return AuthMiddleware::unauthorizedResponse('', 401);
-        }
+
         $userId = $request->user['id'];
         $params = [
             'start' => (int)$request->input('start', 0),
@@ -61,9 +59,6 @@ class OrderController
     {
         // $userId = $request->attributes['user_id'] ?? null;
         try {
-            if (!isset($request->user['id'])) {
-                return AuthMiddleware::unauthorizedResponse('', 401);
-            }
 
             $userId = $request->user['id'];
             if (! $userId) {
@@ -160,9 +155,6 @@ class OrderController
         DB::beginTransaction();
 
         try {
-            if (!isset($request->user['id'])) {
-                return AuthMiddleware::unauthorizedResponse('', 401);
-            }
 
             $userId = $request->user['id'];
             $orderId = $request->get('order_id');
@@ -199,10 +191,6 @@ class OrderController
     public function close(Request $request)
     {
         try {
-            if (!isset($request->user['id'])) {
-                return AuthMiddleware::unauthorizedResponse('', 401);
-            }
-
             $userId = $request->user['id'];
 
             // 2) Validate input
@@ -293,9 +281,7 @@ class OrderController
     public function cancel(Request $request)
     {
         try {
-            if (!isset($request->user['id'])) {
-                return AuthMiddleware::unauthorizedResponse('', 401);
-            }
+
 
             $userId = $request->user['id'];
 

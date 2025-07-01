@@ -42,6 +42,30 @@ class Response extends BaseResponse
     ];
     public static function ServerError(string $message = 'Server error', int $status = 500)
     {
-        return new static($status, self::$HEADERS_JSON, json_encode(['status' => false, 'message' => $message], JSON_UNESCAPED_UNICODE));
+        return new static(
+            $status,
+            self::$HEADERS_JSON,
+            json_encode(['status' => false, 'message' => $message], JSON_UNESCAPED_UNICODE)
+        );
+    }
+    public static function LoginSuccess($jwt, $data = null)
+    {
+        $payload = array_merge(
+            ['status' => true, 'token' => $jwt],
+            $data
+        );
+        return new static(
+            200,
+            self::$HEADERS_JSON,
+            json_encode($payload, JSON_UNESCAPED_UNICODE)
+        );
+    }
+    public static function UnAuthorize(string $message = 'Unauthorized: Invalid or missing token')
+    {
+        return new static(
+            401,
+            ['WWW-Authenticate' => 'Bearer', 'Content-Type' => 'application/json; charset=utf-8'],
+            json_encode(['status' => false, 'message' => $message], JSON_UNESCAPED_UNICODE)
+        );
     }
 }

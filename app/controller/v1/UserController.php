@@ -26,11 +26,16 @@ class UserController
         $this->userInterface = $userInterface;
         $this->otpRepository = new OtpRepository();
     }
-    public function testview()
-    {
-        return view('mail-service');
-    }
-    // GET /search?q=keyword&page=1&per_page=15
+
+    /**
+     * Search users by keyword with pagination.
+     *      * Authorization: Bearer token
+     *
+     * GET /search?q=keyword&page=1&per_page=15
+     *
+     * @param Request $request Incoming HTTP request containing 'q' and pagination parameters.
+     * @return Response JSON response with list of users and pagination metadata.
+     */
     public function search(Request $request)
     {
         try {
@@ -53,7 +58,14 @@ class UserController
             return Response::ServerError();
         }
     }
-    // GET /api/v1/users
+    /**
+     * List all users, optionally paginated.
+     *
+     * GET /api/v1/users
+     *     * Authorization: Bearer token
+     * @param Request $request Incoming HTTP request containing 'per_page'.
+     * @return Response JSON response with user list and optional pagination.
+     */
     public function index(Request $request)
     {
         try {
@@ -83,7 +95,16 @@ class UserController
         }
     }
 
-    // GET /api/v1/users/{id} or username
+    /**
+     * Retrieve a single user by ID or username.
+     *
+     * GET /api/v1/users/{id} or /api/v1/users/{username}
+     *      * Authorization: Bearer token
+     *
+     * @param Request $request Incoming HTTP request.
+     * @param string $identifier Numeric ID or username.
+     * @return Response JSON response with user data or 404 if not found.
+     */
     public function show(Request $request, string $identifier)
     {
         try {
@@ -115,8 +136,15 @@ class UserController
             return Response::ServerError();
         }
     }
-
-    // POST /api/v1/users/register
+    /**
+     * Register a new user and send OTP for email verification.
+     *
+     * POST /api/v1/users/register
+     * Body: username, password, email
+     *
+     * @param Request $request Incoming HTTP request with registration data.
+     * @return Response JSON response with status, user_id, and OTP send status.
+     */
     public function create(Request $request)
     {
         $data = $request->only(['username', 'password', 'email']);
@@ -146,13 +174,22 @@ class UserController
             return Response::ServerError($error ?? 'Server error');
         }
     }
+    /**
+     * Resend OTP to unverified user.
+     *
+     * POST /auth/v1/re-send-otp
+     * Body: email
+     *
+     * @param Request $request Incoming HTTP request containing email.
+     * @return Response JSON response with resend status or 404 if user not found.
+     */
     public function reSendOtp(Request $request)
     {
         try {
             $email = $request->get('email');
-            $user = $this->userInterface->findByEmail($email);
+            $user = $this->userInterface->findByEmail($email)->where('status', false);
             if (!$user) {
-                return new Response(404, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => 'Invalid email']));
+                return new Response(404, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => 'Not found user need active with email ' . $email]));
             }
             $otpService = new OtpService();
             $result = $otpService->sendOtpRegister($user->id, $email);
@@ -162,7 +199,15 @@ class UserController
             return Response::ServerError($error ?? 'Server error');
         }
     }
-    // POST /api/v1/users/confirm
+    /**
+     * Confirm user registration via OTP code.
+     *
+     * POST /api/v1/users/confirm
+     * Body: user_id, otp
+     *
+     * @param Request $request Incoming HTTP request with OTP data.
+     * @return Response JSON response confirming validation or error.
+     */
     public function confirmRegister(Request $request)
     {
         try {
@@ -171,7 +216,7 @@ class UserController
                 return new Response(
                     400,
                     Response::$HEADERS_JSON,
-                    json_encode(['message' => 'Missing otp or user_id'], JSON_UNESCAPED_UNICODE)
+                    json_encode(['status' => false, 'message' => 'Missing otp or user_id'], JSON_UNESCAPED_UNICODE)
                 );
             }
 
@@ -194,7 +239,7 @@ class UserController
                 return new Response(
                     403,
                     Response::$HEADERS_JSON,
-                    json_encode(['message' => 'Invalid OTP'], JSON_UNESCAPED_UNICODE)
+                    json_encode(['status' => false, 'message' => 'Invalid OTP'], JSON_UNESCAPED_UNICODE)
                 );
             }
             $this->userInterface->update($data['user_id'], ['status' => 1]);
@@ -203,14 +248,23 @@ class UserController
             return new Response(
                 200,
                 Response::$HEADERS_JSON,
-                json_encode(['status' => true], JSON_UNESCAPED_UNICODE)
+                json_encode(['status' => true, 'message' => 'User has been validated'], JSON_UNESCAPED_UNICODE)
             );
         } catch (\Throwable $e) {
             Log::error('UserController@confirmRegister error: ' . $e->getMessage());
             return Response::ServerError();
         }
     }
-    // POST /api/v1/users/password
+    /**
+     * Change the authenticated user's password.
+     *
+     * POST /api/v1/users/password
+     * Body: old_password, new_password
+     * Authorization: Bearer token
+     *
+     * @param Request $request Incoming HTTP request with password data.
+     * @return Response JSON response with success or error message.
+     */
     public function changePassword(Request $request)
     {
         try {
@@ -219,7 +273,7 @@ class UserController
                 return new Response(
                     401,
                     Response::$HEADERS_JSON,
-                    json_encode(['message' => 'Unauthorized'], JSON_UNESCAPED_UNICODE)
+                    json_encode(['status' => false, 'message' => 'Unauthorized'], JSON_UNESCAPED_UNICODE)
                 );
             }
 
@@ -228,7 +282,7 @@ class UserController
                 return new Response(
                     400,
                     Response::$HEADERS_JSON,
-                    json_encode(['message' => 'Missing old_password or new_password'], JSON_UNESCAPED_UNICODE)
+                    json_encode(['status' => false, 'message' => 'Missing old_password or new_password'], JSON_UNESCAPED_UNICODE)
                 );
             }
 
@@ -236,7 +290,7 @@ class UserController
                 return new Response(
                     200,
                     Response::$HEADERS_JSON,
-                    json_encode(['status' => true], JSON_UNESCAPED_UNICODE)
+                    json_encode(['status' => true, 'message' => 'Password has been updated'], JSON_UNESCAPED_UNICODE)
                 );
             }
 
