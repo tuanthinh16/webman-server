@@ -51,8 +51,6 @@ class AuthMiddleware implements MiddlewareInterface
     protected function shouldSkipAuth(Request $request): bool
     {
         $publicRoutes = [
-            '/api/v1/users/register',
-            '/api/v1/auth/login',
             '/api/v1/users/search',
             '/'
         ];

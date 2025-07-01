@@ -16,7 +16,7 @@ class UserValidate
         $rules = [
             'username' => 'required|string|max:50',
             'password' => 'required|string|min:1',
-            'email'    => 'required|email|unique:wa_users,email|max:255',
+            'email'    => 'required|email|max:255',
         ];
 
         $messages = [
