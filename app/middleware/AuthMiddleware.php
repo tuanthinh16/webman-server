@@ -6,8 +6,6 @@ use app\helper\IpAddressHelper;
 use app\helper\JwtHelper;
 use Webman\MiddlewareInterface;
 use Webman\Http\Request;
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 use Firebase\JWT\ExpiredException;
 use Firebase\JWT\SignatureInvalidException;
 use support\Log;

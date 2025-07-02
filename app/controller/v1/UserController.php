@@ -64,30 +64,15 @@ class UserController
      * GET /api/v1/users
      *     * Authorization: Bearer token
      * @param Request $request Incoming HTTP request containing 'per_page'.
-     * @return Response JSON response with user list and optional pagination.
      */
     public function index(Request $request)
     {
         try {
             $perPage = (int)$request->input('per_page', 15);
             $data = $this->userInterface->listUsers($perPage);
-            if (is_object($data) && method_exists($data, 'items')) {
-                $result = $data->items();
-                $pagination = [
-                    'current_page' => $data->currentPage(),
-                    'last_page'    => $data->lastPage(),
-                    'per_page'     => $data->perPage(),
-                    'total'        => $data->total(),
-                ];
-            } else {
-                $result = $data;
-                $pagination = null;
-            }
-
             return new Response(200, Response::$HEADERS_JSON, json_encode([
                 'status' => true,
-                'data' => $result,
-                'pagination' => $pagination,
+                'data' => $data,
             ], JSON_UNESCAPED_UNICODE));
         } catch (\Throwable $e) {
             Log::error('UserController@index error: ' . $e->getMessage());
