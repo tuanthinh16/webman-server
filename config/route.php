@@ -23,7 +23,7 @@ use app\middleware\CorsMiddleware;
 use support\Response;
 use Webman\Route;
 
-Route::get('/testview',      [UserController::class, 'testview']);
+// Route::get('/testview',      [UserController::class, 'testview']);
 
 
 Route::group('/auth/v1', function () {

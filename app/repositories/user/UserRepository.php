@@ -86,7 +86,7 @@ class UserRepository implements UserInterface
             }
             $data = "";
             if (!Redis::exists('users')) {
-                $data = User::all()->toArray();
+                $data = User::cursor();
 
                 Redis::set('users', json_encode($data));
             } else {
