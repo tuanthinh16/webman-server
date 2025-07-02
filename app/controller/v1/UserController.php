@@ -34,7 +34,6 @@ class UserController
      * GET /search?q=keyword&page=1&per_page=15
      *
      * @param Request $request Incoming HTTP request containing 'q' and pagination parameters.
-     * @return Response JSON response with list of users and pagination metadata.
      */
     public function search(Request $request)
     {
@@ -42,20 +41,10 @@ class UserController
             $keyword = $request->input('q', '');
             $perPage = (int)$request->input('per_page', 15);
             $paginated = $this->userInterface->search($keyword, $perPage);
-
-            return new Response(200, Response::$HEADERS_JSON, json_encode([
-                'status' => true,
-                'data' => $paginated->items(),
-                'pagination' => [
-                    'current_page' => $paginated->currentPage(),
-                    'last_page'    => $paginated->lastPage(),
-                    'per_page'     => $paginated->perPage(),
-                    'total'        => $paginated->total(),
-                ]
-            ], JSON_UNESCAPED_UNICODE));
+            return new Response(200, Response::$HEADERS_JSON, json_encode($paginated), JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
             Log::error('UserController@search error: ' . $e->getMessage());
-            return Response::ServerError();
+            return $e->getMessage();
         }
     }
     /**

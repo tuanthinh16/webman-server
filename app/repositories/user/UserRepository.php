@@ -6,6 +6,7 @@ use app\model\User;
 use Elastic\Elasticsearch\ClientBuilder;
 use support\Log;
 use support\Redis;
+use support\Response;
 
 class UserRepository implements UserInterface
 {
@@ -73,7 +74,6 @@ class UserRepository implements UserInterface
 
     public function search(string $keyword, int $perPage)
     {
-
         try {
             if (!$this->esClient->indices()->exists(['index' => $this->index])->asBool()) {
                 $this->esClient->indices()->create([
@@ -86,12 +86,15 @@ class UserRepository implements UserInterface
             }
             $data = "";
             if (!Redis::exists('users')) {
-                $data = User::cursor();
+                $data = User::all()->toArray();
 
                 Redis::set('users', json_encode($data));
-            } else {
-                $data = json_decode(Redis::get('users'), true);
             }
+            $data = json_decode(Redis::get('users'), true);
+            if (!$data) {
+                return new Response(404, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => 'Not Found User'], JSON_UNESCAPED_UNICODE));
+            }
+
             $bulkParams = ['body' => []];
 
             foreach ($data as $user) {
@@ -112,7 +115,6 @@ class UserRepository implements UserInterface
                     //.....
                 ];
             }
-
             $this->esClient->bulk($bulkParams);
             $params = [
                 'index' => $this->index,
@@ -132,17 +134,18 @@ class UserRepository implements UserInterface
                 ? array_map(fn($h) => $h['_source'], $response['hits']['hits'])
                 : [];
             $page = request()->input('page', 1);
-
-            $total = count($hits);
             $items = array_slice($hits, ($page - 1) * $perPage, $perPage);
+            $total = count($hits);
 
-            return new \Illuminate\Pagination\LengthAwarePaginator(
-                $items,
-                $total,
-                $perPage,
-                $page,
-                ['path' => request()->url(), 'query' => request()->queryString()]
-            );
+            return [
+                'data' => $items,
+                'pagination' => [
+                    'total' => $total,
+                    'per_page' => $perPage,
+                    'current_page' => $page,
+                    'last_page' => ceil($total / $perPage),
+                ]
+            ];
         } catch (\Throwable $e) {
             Log::error('UserRepository@search error: ' . $e->getMessage());
             throw $e;

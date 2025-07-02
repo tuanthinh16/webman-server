@@ -49,7 +49,8 @@
     "topthink/think-validate": "2.0",
     "webman/stomp": "^1.1",
     "phpmailer/phpmailer": "^6.10",
-    "webman/console": "^2.1"
+    "webman/console": "^2.1",
+    "illuminate/pagination": "^9.52"
   },
   "suggest": {
     "ext-event": "For better performance. "
