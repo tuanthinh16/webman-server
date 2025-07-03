@@ -37,7 +37,6 @@ class Response extends BaseResponse
     // File download response (binary stream)
     public static array $HEADERS_DOWNLOAD = [
         'Content-Type' => 'application/octet-stream',
-        // Content-Disposition có thể điều chỉnh filename khi cần
         'Content-Disposition' => 'attachment; filename="download.bin"',
     ];
 
@@ -60,10 +59,7 @@ class Response extends BaseResponse
     }
     public static function LoginSuccess($jwt, $data = null)
     {
-        $payload = array_merge(
-            ['status' => true, 'token' => $jwt],
-            $data
-        );
+        $payload = array_merge(['status' => true, 'token' => $jwt], $data);
         return new static(
             200,
             self::$HEADERS_JSON,

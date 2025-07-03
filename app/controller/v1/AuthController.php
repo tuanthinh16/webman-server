@@ -18,9 +18,7 @@ class AuthController
     public function login(Request $request)
     {
         $data = $request->json();
-        // return $data;
         $ip = IpAddressHelper::getRequestIp($request);
-
         return $this->authService->handle($data, $ip);
     }
 }

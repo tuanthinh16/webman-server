@@ -39,7 +39,6 @@ class CredentialAuthStrategy implements AuthStrategyInterface
             if (! $user || ! password_verify($password, $user->password)) {
                 return Response::UnAuthorize('Invalid username or password');
             }
-            // return $user;
             $now = date('Y-m-d H:i:s');
             $payload = [
                 'last_time' => $now,
