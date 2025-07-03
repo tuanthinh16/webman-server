@@ -13,25 +13,23 @@ class OtpService
 {
     private $otpHelper;
     private $otpRepository;
-
+    private string $secret;
     public function __construct()
     {
         $this->otpHelper = new OtpCodeHelper();
         $this->otpRepository = new OtpRepository();
+        $this->secret = env('JWT_SECRET', 'daylamabaomat');
     }
     public function sendOtpRegister($user_id, $user_email)
     {
         try {
             $createdAt = date('Y-m-d H:i:s');
             $otpCode   = OtpCodeHelper::generateOtp(6);
-
-            $secret    = env('JWT_SECRET', 'some_random_secret');
             $hash      = hash_hmac(
                 'sha256',
                 "{$user_id}|{$otpCode}|{$createdAt}",
-                $secret
+                $this->secret
             );
-
             $otp = $this->otpRepository->create([
                 'user_id'    => $user_id,
                 'otp_code'   => $otpCode,
@@ -47,12 +45,32 @@ class OtpService
                 Log::error('UserController@register error: ' . $error);
                 return Response::ServerError();
             }
-            // Send OTP to user email
             $mailService = new EmailOtpSender();
             $result = $mailService->send($user_id, $otpCode, $user_email, 'Xác nhận đăng ký tài khoản');
             return $result;
         } catch (\Throwable $e) {
             return $e;
+        }
+    }
+    public function validateOtp($userID, $otpCode, $type = 'register'): bool
+    {
+        try {
+            $otp = $this->otpRepository->findByUserIdAndOtp($userID, $otpCode, 'register');
+            if (!$otp || strtotime($otp->valid_time) < time() || $otp->otp_code !== $otpCode) {
+                return false;
+            }
+            $hash = hash_hmac(
+                'sha256',
+                "{$otp->user_id}|{$otpCode}|{$otp->created_at}",
+                $this->secret
+            );
+            if ($hash !== $otp->hash) {
+                return false;
+            }
+            $this->otpRepository->markAsUsed($otp->id);
+            return true;
+        } catch (\Throwable $e) {
+            return false;
         }
     }
 }

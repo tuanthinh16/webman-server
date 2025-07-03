@@ -18,10 +18,12 @@ class UserController
 {
     protected UserInterface $userInterface;
     protected OtpRepository $otpRepository;
+    protected $otpService;
     public function __construct(UserInterface $userInterface)
     {
         $this->userInterface = $userInterface;
         $this->otpRepository = new OtpRepository();
+        $this->otpService = new OtpService();
     }
 
     /**
@@ -36,9 +38,9 @@ class UserController
     {
         try {
             $keyword = $request->input('q', '');
-            $perPage = (int)$request->input('per_page', 15);
+            $perPage = $request->input('per_page', 15);
             $paginated = $this->userInterface->search($keyword, $perPage);
-            return new Response(200, Response::$HEADERS_JSON, json_encode($paginated), JSON_UNESCAPED_UNICODE);
+            return Response::Success($paginated);
         } catch (\Throwable $e) {
             Log::error('UserController@search error: ' . $e->getMessage());
             return $e->getMessage();
@@ -54,12 +56,9 @@ class UserController
     public function index(Request $request)
     {
         try {
-            $perPage = (int)$request->input('per_page', 15);
+            $perPage = $request->input('per_page', 15);
             $data = $this->userInterface->listUsers($perPage);
-            return new Response(200, Response::$HEADERS_JSON, json_encode([
-                'status' => true,
-                'data' => $data,
-            ], JSON_UNESCAPED_UNICODE));
+            return Response::Success($data);
         } catch (\Throwable $e) {
             Log::error('UserController@index error: ' . $e->getMessage());
             return Response::ServerError();
@@ -79,7 +78,6 @@ class UserController
     public function show(Request $request, string $identifier)
     {
         try {
-            // Determine if identifier is numeric (ID) or string (username)
             $user = null;
             if (ctype_digit($identifier)) {
                 $id = (int) $identifier;
@@ -88,7 +86,6 @@ class UserController
                 $username = $identifier;
                 $user = $this->userInterface->findByUsername($username);
             }
-
             if (!$user) {
                 return new Response(
                     404,
@@ -96,12 +93,7 @@ class UserController
                     json_encode(['status' => false, 'message' => 'User not found'], JSON_UNESCAPED_UNICODE)
                 );
             }
-
-            return new Response(
-                200,
-                Response::$HEADERS_JSON,
-                json_encode(['status' => true, 'data' => $user->toArray()], JSON_UNESCAPED_UNICODE)
-            );
+            return Response::Success($user->toArray());
         } catch (\Throwable $e) {
             Log::error('UserController@show error: ' . $e->getMessage());
             return Response::ServerError();
@@ -120,28 +112,23 @@ class UserController
     {
         $data = $request->only(['username', 'password', 'email']);
         $validated = UserValidate::validate($data);
-
         if (!$validated['status']) {
-            return json($validated, 422);
+            return new Response(422, Response::$HEADERS_JSON, $validated);
         }
         try {
             $user = $this->userInterface->register(PrepareDataUserHelper::prepareRegistration($data, IpAddressHelper::getRequestIp($request)));
             if (!$user) {
-                $error = 'User registration failed';
-                Log::error('UserController@register error: ' . $error);
-                return new Response(500, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => $error], JSON_UNESCAPED_UNICODE));
+                return new Response(500, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => 'User registration failed'], JSON_UNESCAPED_UNICODE));
             }
             $otpService = new OtpService();
             $result = $otpService->sendOtpRegister($user->id, $user->email);
             if (!$result) {
-                $error = 'Failed to send OTP email';
-                Log::error('UserController@register error: ' . $error);
-                return Response::ServerError();
+                return Response::ServerError('Failed to send OTP email');
             }
-            return new Response(201, Response::$HEADERS_JSON, json_encode(['status' => true, 'send-otp' => $result, 'email' => $user->email], JSON_UNESCAPED_UNICODE));
+            return Response::Success(['send-otp' => $result, 'email' => $user->email], 201);
         } catch (\Throwable $e) {
             Log::error('UserController@register error: ' . $e->getMessage());
-            return Response::ServerError($error ?? 'Server error');
+            return Response::ServerError();
         }
     }
     /**
@@ -158,16 +145,14 @@ class UserController
         try {
             $email = $request->input('email');
             $user = $this->userInterface->findByEmailWhereInactive($email);
-            // return json($user);
             if (!$user) {
                 return new Response(404, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => 'Not found user need active with email ' . $email]));
             }
-            $otpService = new OtpService();
-            $result = $otpService->sendOtpRegister($user->id, $email);
-            return new Response(200, Response::$HEADERS_JSON, json_encode(['status' => true, 'message' => $result]));
+            $result = $this->otpService->sendOtpRegister($user->id, $email, true);
+            return Response::Success($result);
         } catch (\Throwable $e) {
             Log::error('UserController@reSendOtp error: ' . $e->getMessage());
-            return Response::ServerError($error ?? 'Server error');
+            return Response::ServerError();
         }
     }
     /**
@@ -181,49 +166,24 @@ class UserController
      */
     public function confirmRegister(Request $request)
     {
-
         try {
             $data = $request->only(['otp', 'email']);
-            // return gettype($data);
             $validated = OtpValidate::validate($data);
             if (!$validated['status']) {
                 return json($validated, 422);
             }
-            // return json(111);
             $user = $this->userInterface->findByEmailWhereInactive($data['email']);
             if (!$user) {
                 return new Response(404, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => 'Not found user need active with email ' . $data['email']]));
             }
-            $otp = $this->otpRepository->findByUserIdAndOtp($user->id, $data['otp'], 'register');
-            if (!$otp || strtotime($otp->valid_time) < time() || $otp->otp_code !== $data['otp']) {
-                return new Response(
-                    404,
-                    Response::$HEADERS_JSON,
-                    json_encode(['message' => 'Invalid OTP'], JSON_UNESCAPED_UNICODE)
-                );
-            }
-            // Verify OTP hash
-            $secret = env('JWT_SECRET', 'some_random_secret');
-            $hash = hash_hmac(
-                'sha256',
-                "{$otp->user_id}|{$data['otp']}|{$otp->created_at}",
-                $secret
-            );
-            if ($hash !== $otp->hash) {
-                return new Response(
-                    403,
-                    Response::$HEADERS_JSON,
-                    json_encode(['status' => false, 'message' => 'Invalid OTP'], JSON_UNESCAPED_UNICODE)
-                );
-            }
-            $this->userInterface->update($user->id, ['status' => 1]);
-            $this->otpRepository->markAsUsed($otp->id);
-
-            return new Response(
-                200,
+            $result = $this->otpService->validateOtp($user->id, $data['otp']);
+            if (!$result) return new Response(
+                403,
                 Response::$HEADERS_JSON,
-                json_encode(['status' => true, 'message' => 'User has been validated'], JSON_UNESCAPED_UNICODE)
+                json_encode(['status' => false, 'message' => 'Invalid OTP'], JSON_UNESCAPED_UNICODE)
             );
+            $this->userInterface->update($user->id, ['status' => 1]);
+            return Response::Success('User has been validated');
         } catch (\Throwable $e) {
             Log::error('UserController@confirmRegister error: ' . $e->getMessage());
             return Response::ServerError();
@@ -244,14 +204,9 @@ class UserController
         try {
             $userId = $request->attributes['user_id'] ?? null;
             if (!$userId) {
-                return new Response(
-                    401,
-                    Response::$HEADERS_JSON,
-                    json_encode(['status' => false, 'message' => 'Unauthorized'], JSON_UNESCAPED_UNICODE)
-                );
+                return Response::UnAuthorize();
             }
-
-            $data = $request->json();
+            $data = $request->only(['old_password', 'new_password']);
             if (empty($data['old_password']) || empty($data['new_password'])) {
                 return new Response(
                     400,
@@ -259,15 +214,10 @@ class UserController
                     json_encode(['status' => false, 'message' => 'Missing old_password or new_password'], JSON_UNESCAPED_UNICODE)
                 );
             }
-
             if ($this->userInterface->changePassword($userId, $data['old_password'], $data['new_password'])) {
-                return new Response(
-                    200,
-                    Response::$HEADERS_JSON,
-                    json_encode(['status' => true, 'message' => 'Password has been updated'], JSON_UNESCAPED_UNICODE)
-                );
-            }
 
+                return Response::Success('Password has been updated');
+            }
             return new Response(
                 403,
                 Response::$HEADERS_JSON,

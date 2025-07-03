@@ -87,19 +87,16 @@ class UserRepository implements UserInterface
                 ]);
             }
             $data = "";
-            // return Redis::del('users');
             if (!Redis::exists('users')) {
                 $data = User::orderBy('id', 'desc')->get()->toArray();
-
                 Redis::set('users', json_encode($data));
             }
             $data = json_decode(Redis::get('users'), true);
             if (!$data) {
                 return new Response(404, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => 'Not Found User'], JSON_UNESCAPED_UNICODE));
             }
-
+            
             $bulkParams = ['body' => []];
-
             foreach ($data as $user) {
                 $bulkParams['body'][] = [
                     'index' => ['_index' => $this->index, '_id' => $user['id']]
@@ -121,7 +118,6 @@ class UserRepository implements UserInterface
             $this->esClient->bulk($bulkParams);
             $page = (int)request()->input('page', 1);
             $from = ($page - 1) * $perPage;
-
             $params = [
                 'index' => $this->index,
                 'body'  => [
@@ -153,9 +149,7 @@ class UserRepository implements UserInterface
                 ],
             ];
             $response = $this->esClient->search($params);
-
             $hits = $response['hits']['hits'];
-
             return PaginationHelper::Pagination($hits, $perPage, $page);
         } catch (\Throwable $e) {
             Log::error('UserRepository@search error: ' . $e->getMessage());

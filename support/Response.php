@@ -40,7 +40,17 @@ class Response extends BaseResponse
         // Content-Disposition có thể điều chỉnh filename khi cần
         'Content-Disposition' => 'attachment; filename="download.bin"',
     ];
-    public static function ServerError(string $message = 'Server error', int $status = 500)
+
+    public static function Success($data = [], $status = 200, $message = '')
+    {
+        $result = array_merge(['status' => true, 'message' => $message], $data);
+        return new static(
+            $status,
+            self::$HEADERS_JSON,
+            json_encode($result, JSON_UNESCAPED_UNICODE)
+        );
+    }
+    public static function ServerError($message = 'Server error',  $status = 500)
     {
         return new static(
             $status,
@@ -60,7 +70,7 @@ class Response extends BaseResponse
             json_encode($payload, JSON_UNESCAPED_UNICODE)
         );
     }
-    public static function UnAuthorize(string $message = 'Unauthorized: Invalid or missing token')
+    public static function UnAuthorize($message = 'Unauthorized: Invalid or missing token')
     {
         return new static(
             401,
