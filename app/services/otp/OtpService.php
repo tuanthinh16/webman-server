@@ -52,7 +52,7 @@ class OtpService
             return $e;
         }
     }
-    public function validateOtp($userID, $otpCode, $type = 'register'): bool
+    public function validateOtp($userID, $otpCode, $type = 'register')
     {
         try {
             $otp = $this->otpRepository->findByUserIdAndOtp($userID, $otpCode, $type);

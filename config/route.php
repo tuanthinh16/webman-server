@@ -14,16 +14,12 @@
  */
 
 use app\controller\v1\AuthController;
-use app\controller\v1\OrderController;
-use app\controller\v1\TransactionController;
 use app\controller\v1\UserController;
-use app\controller\v1\WalletController;
 use app\middleware\AuthMiddleware;
 use app\middleware\CorsMiddleware;
 use support\Response;
 use Webman\Route;
 
-// Route::get('/testview',      [UserController::class, 'testview']);
 
 
 Route::group('/auth/v1', function () {
@@ -37,24 +33,7 @@ Route::post('/test-mail', [\app\controller\v1\MaillerController::class, 'index']
 
 Route::group('/api', function () {
     Route::group('/v1', function () {
-        Route::group('/orders', function () {
-            Route::get('',                      [OrderController::class, 'getByUserID']);
-            // POST /api/orders/place
-            Route::post('/place',               [OrderController::class, 'place']);
-            // POST /api/orders/accept?order_id={order_id}
-            Route::post('/accept',              [OrderController::class, 'accept']);
-            // POST /api/orders/close?order_id={order_id}
-            Route::post('/close',               [OrderController::class, 'close']);
-            // POST /api/orders/cancel?order_id={order_id}
-            Route::post('/cancel',            [OrderController::class, 'cancel']);
-        });
-        Route::group('/transaction', function () {
-            Route::post('', [TransactionController::class, 'create']);
-            Route::get('', [TransactionController::class, 'index']);
-        });
-        Route::group('/wallet', function () {
-            Route::get('', [WalletController::class, 'getBalance']);
-        });
+
         Route::group('/users', function () {
             require base_path('app/routes/UserRoute.php');
         });
