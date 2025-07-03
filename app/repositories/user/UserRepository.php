@@ -15,6 +15,7 @@ class UserRepository implements UserInterface
     protected $esClient;
     protected $modelClass = User::class;
     protected $index = 'wa_users';
+    private $keyRedis = 'users';
 
     public function __construct()
     {
@@ -54,7 +55,9 @@ class UserRepository implements UserInterface
     public function register(array $data)
     {
         try {
-            return ($this->modelClass)::create($data);
+            $user = ($this->modelClass)::create($data);
+            if (Redis::exists($this->keyRedis)) Redis::del($this->keyRedis);
+            return $user;
         } catch (\Throwable $e) {
             Log::error('UserService@register error: ' . $e->getMessage());
             throw $e;
@@ -87,15 +90,15 @@ class UserRepository implements UserInterface
                 ]);
             }
             $data = "";
-            if (!Redis::exists('users')) {
+            if (!Redis::exists($this->keyRedis)) {
                 $data = User::orderBy('id', 'desc')->get()->toArray();
-                Redis::set('users', json_encode($data));
+                Redis::set($this->keyRedis, json_encode($data));
             }
-            $data = json_decode(Redis::get('users'), true);
+            $data = json_decode(Redis::get($this->keyRedis), true);
             if (!$data) {
                 return new Response(404, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => 'Not Found User'], JSON_UNESCAPED_UNICODE));
             }
-            
+
             $bulkParams = ['body' => []];
             foreach ($data as $user) {
                 $bulkParams['body'][] = [

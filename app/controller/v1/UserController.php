@@ -12,6 +12,7 @@ use app\validation\user\UserValidate;
 use support\Request;
 use support\Response;
 use support\Log;
+use support\Redis;
 use support\Validation;
 
 class UserController
@@ -106,20 +107,21 @@ class UserController
      * Body: username, password, email
      *
      * @param Request $request Incoming HTTP request with registration data.
-     * @return Response JSON response with status, user_id, and OTP send status.
+     * JSON response with status, user_id, and OTP send status.
      */
     public function create(Request $request)
     {
         $data = $request->only(['username', 'password', 'email']);
         $validated = UserValidate::validate($data);
         if (!$validated['status']) {
-            return new Response(422, Response::$HEADERS_JSON, $validated);
+            return new Response(422, [], json_encode($validated, JSON_UNESCAPED_UNICODE));
         }
         try {
             $user = $this->userInterface->register(PrepareDataUserHelper::prepareRegistration($data, IpAddressHelper::getRequestIp($request)));
             if (!$user) {
                 return new Response(500, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => 'User registration failed'], JSON_UNESCAPED_UNICODE));
             }
+
             $otpService = new OtpService();
             $result = $otpService->sendOtpRegister($user->id, $user->email);
             if (!$result) {
