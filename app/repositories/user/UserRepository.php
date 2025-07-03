@@ -2,6 +2,7 @@
 
 namespace app\repositories\user;
 
+use app\helper\PaginationHelper;
 use app\model\User;
 use Elastic\Elasticsearch\ClientBuilder;
 use support\Log;
@@ -20,6 +21,7 @@ class UserRepository implements UserInterface
         $this->esClient = ClientBuilder::create()
             ->setHosts([env('ESLASCTICSEARCH')])
             ->build();
+
         if (!isset($this->modelClass)) {
             throw new \Exception('Model class must be defined in repository');
         }
@@ -85,8 +87,9 @@ class UserRepository implements UserInterface
                 ]);
             }
             $data = "";
+            // return Redis::del('users');
             if (!Redis::exists('users')) {
-                $data = User::all()->toArray();
+                $data = User::orderBy('id', 'desc')->get()->toArray();
 
                 Redis::set('users', json_encode($data));
             }
@@ -116,36 +119,44 @@ class UserRepository implements UserInterface
                 ];
             }
             $this->esClient->bulk($bulkParams);
+            $page = (int)request()->input('page', 1);
+            $from = ($page - 1) * $perPage;
+
             $params = [
                 'index' => $this->index,
                 'body'  => [
+                    'from' => $from,
+                    'size' => 30,
                     'query' => [
                         'bool' => [
                             'should' => [
-                                ['wildcard' => ['nickname' => '*' . strtolower($keyword) . '*']],
-                                ['wildcard' => ['username' => '*' . strtolower($keyword) . '*']],
-                            ]
-                        ]
-                    ]
-                ]
+                                [
+                                    'wildcard' => [
+                                        'nickname' => [
+                                            'value'             => "*{$keyword}*",
+                                            'case_insensitive'  => true,
+                                        ],
+                                    ],
+                                ],
+                                [
+                                    'wildcard' => [
+                                        'username' => [
+                                            'value'             => "*{$keyword}*",
+                                            'case_insensitive'  => true,
+                                        ],
+                                    ],
+                                ],
+                            ],
+                            'minimum_should_match' => 1,
+                        ],
+                    ],
+                ],
             ];
             $response = $this->esClient->search($params);
-            $hits = isset($response['hits']['hits']) && is_array($response['hits']['hits'])
-                ? array_map(fn($h) => $h['_source'], $response['hits']['hits'])
-                : [];
-            $page = request()->input('page', 1);
-            $items = array_slice($hits, ($page - 1) * $perPage, $perPage);
-            $total = count($hits);
 
-            return [
-                'data' => $items,
-                'pagination' => [
-                    'total' => $total,
-                    'per_page' => $perPage,
-                    'current_page' => $page,
-                    'last_page' => ceil($total / $perPage),
-                ]
-            ];
+            $hits = $response['hits']['hits'];
+
+            return PaginationHelper::Pagination($hits, $perPage, $page);
         } catch (\Throwable $e) {
             Log::error('UserRepository@search error: ' . $e->getMessage());
             throw $e;

@@ -1,4 +1,5 @@
 <?php
+
 namespace support;
 
 use Illuminate\Validation\Factory;
@@ -15,7 +16,7 @@ class Validation
         $factory = new Factory($translator);
 
         $capsule = new Capsule();
-        $capsule->addConnection(config('database.connections.mysql')); 
+        $capsule->addConnection(config('database.connections.mysql'));
         $capsule->setAsGlobal();
         $capsule->bootEloquent();
 

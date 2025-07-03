@@ -9,7 +9,7 @@ class UserValidate
     public static function rules(): array
     {
         return [
-            'username' => 'required|string|max:50',
+            'username' => 'required|string|unique:wa_users,username|max:50',
             'password' => 'required|string|min:1',
             'email'    => 'required|email|unique:wa_users,email|max:255',
         ];
@@ -19,7 +19,10 @@ class UserValidate
     {
         return [
             'username.required' => 'Username là bắt buộc',
+            'username.unique' => 'Username đã tồn tại',
             'email.required'    => 'Email là bắt buộc',
+            'email.unique' => 'Email đã tồn tại'
+
         ];
     }
 

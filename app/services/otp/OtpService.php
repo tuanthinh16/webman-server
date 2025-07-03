@@ -5,6 +5,7 @@ namespace app\services\otp;
 use app\helper\OtpCodeHelper;
 use app\repositories\otp\OtpRepository;
 use app\services\EmailOtpSender;
+use app\validation\user\OtpValidate;
 use support\Log;
 use support\Response;
 
@@ -40,6 +41,7 @@ class OtpService
                 'hash'       => $hash,
                 'type'       => 'register',
             ]);
+
             if (!$otp) {
                 $error = 'OTP creation failed';
                 Log::error('UserController@register error: ' . $error);

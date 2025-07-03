@@ -3,19 +3,16 @@
 namespace app\controller\v1;
 
 use app\helper\IpAddressHelper;
-use app\helper\OtpCodeHelper;
 use app\helper\PrepareDataUserHelper;
 use app\repositories\otp\OtpRepository;
 use app\repositories\user\UserInterface;
-use app\services\EmailOtpSender;
-use app\services\MailService;
 use app\services\otp\OtpService;
+use app\validation\user\OtpValidate;
 use app\validation\user\UserValidate;
 use support\Request;
 use support\Response;
 use support\Log;
-use GuzzleHttp\Client;
-// $validated = UserValidate::validate($data);
+use support\Validation;
 
 class UserController
 {
@@ -142,7 +139,7 @@ class UserController
                 Log::error('UserController@register error: ' . $error);
                 return Response::ServerError();
             }
-            return new Response(201, Response::$HEADERS_JSON, json_encode(['status' => true, 'user_id' => $user->id, 'send-otp' => $result, 'email' => $user->email], JSON_UNESCAPED_UNICODE));
+            return new Response(201, Response::$HEADERS_JSON, json_encode(['status' => true, 'send-otp' => $result, 'email' => $user->email], JSON_UNESCAPED_UNICODE));
         } catch (\Throwable $e) {
             Log::error('UserController@register error: ' . $e->getMessage());
             return Response::ServerError($error ?? 'Server error');
@@ -185,17 +182,20 @@ class UserController
      */
     public function confirmRegister(Request $request)
     {
-        try {
-            $data = $request->json();
-            if (empty($data['otp']) || empty($data['user_id'])) {
-                return new Response(
-                    400,
-                    Response::$HEADERS_JSON,
-                    json_encode(['status' => false, 'message' => 'Missing otp or user_id'], JSON_UNESCAPED_UNICODE)
-                );
-            }
 
-            $otp = $this->otpRepository->findByUserIdAndOtp($data['user_id'], $data['otp'], 'register');
+        try {
+            $data = $request->only(['otp', 'email']);
+            // return gettype($data);
+            $validated = OtpValidate::validate($data);
+            if (!$validated['status']) {
+                return json($validated, 422);
+            }
+            // return json(111);
+            $user = $this->userInterface->findByEmailWhereInactive($data['email']);
+            if (!$user) {
+                return new Response(404, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => 'Not found user need active with email ' . $data['email']]));
+            }
+            $$otp = $this->otpRepository->findByUserIdAndOtp($user->id, $data['otp'], 'register');
             if (!$otp || strtotime($otp->valid_time) < time() || $otp->otp_code !== $data['otp']) {
                 return new Response(
                     404,
