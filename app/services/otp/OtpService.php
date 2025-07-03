@@ -55,7 +55,7 @@ class OtpService
     public function validateOtp($userID, $otpCode, $type = 'register'): bool
     {
         try {
-            $otp = $this->otpRepository->findByUserIdAndOtp($userID, $otpCode, 'register');
+            $otp = $this->otpRepository->findByUserIdAndOtp($userID, $otpCode, $type);
             if (!$otp || strtotime($otp->valid_time) < time() || $otp->otp_code !== $otpCode) {
                 return false;
             }
