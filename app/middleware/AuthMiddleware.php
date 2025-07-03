@@ -4,6 +4,8 @@ namespace app\middleware;
 
 use app\helper\IpAddressHelper;
 use app\helper\JwtHelper;
+use app\repositories\user\UserRepository;
+use app\validation\user\AuthValidate;
 use Webman\MiddlewareInterface;
 use Webman\Http\Request;
 use Firebase\JWT\JWT;
@@ -11,7 +13,7 @@ use Firebase\JWT\Key;
 use Firebase\JWT\ExpiredException;
 use Firebase\JWT\SignatureInvalidException;
 use support\Log;
-use Webman\Http\Response;
+use support\Response;
 
 class AuthMiddleware implements MiddlewareInterface
 {
@@ -25,19 +27,25 @@ class AuthMiddleware implements MiddlewareInterface
     public function process(Request $request, callable $next): Response
     {
 
-        // Log::info('loadding middleware');
         $ip = IpAddressHelper::getRequestIp($request);
         Log::debug('Request from IP: ' . $ip);
         if ($this->shouldSkipAuth($request)) {
             return $next($request);
         }
         $token = $this->extractToken($request);
+
         if (!$token) {
             return $this->unauthorizedResponse('Missing authorization token');
         }
 
         try {
             $decoded = $this->jwtHelper->decodeToken($token);
+            // return new Response(200, Response::$HEADERS_JSON, json_encode($decoded->sub));
+            $userRepository = new UserRepository();
+            $user = $userRepository->findByID($decoded->sub);
+            if (!$user) {
+                return new Response(401, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => 'Cant find user with token ']));
+            }
             $this->attachUserData($request, $decoded);
         } catch (ExpiredException $e) {
             return $this->unauthorizedResponse('Token expired', 401);
@@ -78,6 +86,6 @@ class AuthMiddleware implements MiddlewareInterface
 
     public static function unauthorizedResponse(string $message, int $code = 401): Response
     {
-        return new Response($code, ['WWW-Authenticate' => 'Bearer'], json_encode(['message' => 'Unauthorized: Invalid or missing token'], JSON_UNESCAPED_UNICODE));
+        return new Response($code, ['WWW-Authenticate' => 'Bearer'], json_encode(['message' => $message ?? 'Unauthorized: Invalid or missing token'], JSON_UNESCAPED_UNICODE));
     }
 }

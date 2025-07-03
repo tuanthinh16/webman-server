@@ -12,7 +12,7 @@ class UserValidate
         return [
             'username' => 'required|string|unique:wa_users,username|max:50',
             'password' => 'required|string|min:1',
-            'email'    => ['required', 'email', 'max:255', new CustomRulesNotExists('wa_users', 'email')],
+            'email'    => ['required', 'email', 'max:255',  'unique:wa_users,email'],
         ];
     }
 

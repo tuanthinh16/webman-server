@@ -17,12 +17,12 @@ class CustomRulesNotExists implements Rule
     }
 
     public function passes($attribute, $value)
-    {   
+    {
         return Db::table($this->table)->where($this->column, $value)->exists();
     }
 
     public function message()
     {
-        return 'Giá trị :attribute không đã tồn tại.';
+        return 'Giá trị :attribute không tồn tại.';
     }
 }

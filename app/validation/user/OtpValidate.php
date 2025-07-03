@@ -2,6 +2,7 @@
 
 namespace app\validation\user;
 
+use app\validation\CustomRulesNotExists;
 use support\Validation;
 
 class OtpValidate
@@ -9,7 +10,7 @@ class OtpValidate
     public static function rules(): array
     {
         return [
-            'otp'    => 'required|string|max:6',
+            'otp'    => ['required', 'string', 'max:6', new CustomRulesNotExists('verify_code', 'otp_code')],
             'email' => 'required|email|max:255'
         ];
     }

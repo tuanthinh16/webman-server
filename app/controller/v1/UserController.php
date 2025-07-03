@@ -120,7 +120,7 @@ class UserController
     {
         $data = $request->only(['username', 'password', 'email']);
         $validated = UserValidate::validate($data);
-     
+
         if (!$validated['status']) {
             return json($validated, 422);
         }
@@ -194,7 +194,7 @@ class UserController
             if (!$user) {
                 return new Response(404, Response::$HEADERS_JSON, json_encode(['status' => false, 'message' => 'Not found user need active with email ' . $data['email']]));
             }
-            $$otp = $this->otpRepository->findByUserIdAndOtp($user->id, $data['otp'], 'register');
+            $otp = $this->otpRepository->findByUserIdAndOtp($user->id, $data['otp'], 'register');
             if (!$otp || strtotime($otp->valid_time) < time() || $otp->otp_code !== $data['otp']) {
                 return new Response(
                     404,
@@ -216,7 +216,7 @@ class UserController
                     json_encode(['status' => false, 'message' => 'Invalid OTP'], JSON_UNESCAPED_UNICODE)
                 );
             }
-            $this->userInterface->update($data['user_id'], ['status' => 1]);
+            $this->userInterface->update($user->id, ['status' => 1]);
             $this->otpRepository->markAsUsed($otp->id);
 
             return new Response(
