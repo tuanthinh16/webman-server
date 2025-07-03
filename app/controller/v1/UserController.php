@@ -120,11 +120,10 @@ class UserController
     {
         $data = $request->only(['username', 'password', 'email']);
         $validated = UserValidate::validate($data);
-
+     
         if (!$validated['status']) {
             return json($validated, 422);
         }
-
         try {
             $user = $this->userInterface->register(PrepareDataUserHelper::prepareRegistration($data, IpAddressHelper::getRequestIp($request)));
             if (!$user) {
